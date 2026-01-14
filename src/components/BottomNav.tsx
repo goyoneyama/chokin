@@ -16,7 +16,7 @@ export function BottomNav() {
     },
     {
       label: '支出',
-      href: '/expenses/new',
+      href: '/expenses',
       icon: Wallet,
       active: pathname.startsWith('/expenses'),
     },
