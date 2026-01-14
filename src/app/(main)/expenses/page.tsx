@@ -6,6 +6,7 @@ import { useExpenses } from '@/hooks/useExpenses';
 import { useCategories } from '@/hooks/useCategories';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -74,8 +75,11 @@ export default function ExpensesPage() {
     });
 
     if (success) {
+      toast.success('支出を更新しました');
       setIsEditOpen(false);
       setSelectedExpense(null);
+    } else {
+      toast.error('支出の更新に失敗しました');
     }
   };
 
@@ -83,8 +87,11 @@ export default function ExpensesPage() {
     if (!selectedExpense) return;
     const success = await deleteExpense(selectedExpense.id);
     if (success) {
+      toast.success('支出を削除しました');
       setIsDeleteOpen(false);
       setSelectedExpense(null);
+    } else {
+      toast.error('支出の削除に失敗しました');
     }
   };
 
@@ -92,8 +99,25 @@ export default function ExpensesPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>読み込み中...</p>
+      <div className="container mx-auto p-4 max-w-4xl pb-20">
+        <div className="flex items-center justify-between mb-6">
+          <div className="h-8 w-32 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-10 w-32 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="h-20 bg-gray-100 rounded animate-pulse"></div>
+          </CardContent>
+        </Card>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <div className="h-16 bg-gray-100 rounded animate-pulse"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
@@ -153,50 +177,54 @@ export default function ExpensesPage() {
         <div className="space-y-3">
           {expenses.map((expense) => (
             <Card key={expense.id}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4 flex-1">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-0">
+                  <div className="flex items-center space-x-3 flex-1">
                     {expense.category && (
                       <div
-                        className="p-2 rounded-full"
+                        className="p-2 rounded-full flex-shrink-0"
                         style={{ backgroundColor: expense.category.color + '20' }}
                       >
                         <CategoryIcon icon={expense.category.icon} size={20} />
                       </div>
                     )}
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-semibold">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-sm sm:text-base">
                           {expense.category?.name || '未分類'}
                         </span>
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-xs sm:text-sm text-muted-foreground">
                           {formatDateShort(expense.date)}
                         </span>
                       </div>
                       {expense.memo && (
-                        <p className="text-sm text-muted-foreground">{expense.memo}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground truncate">{expense.memo}</p>
                       )}
                     </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-red-600">
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-base sm:text-lg font-bold text-red-600">
                         {formatCurrency(expense.amount)}
                       </div>
                     </div>
                   </div>
-                  <div className="flex space-x-2 ml-4">
+                  <div className="flex space-x-2 sm:ml-4 justify-end">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => openEditDialog(expense)}
+                      className="flex-1 sm:flex-initial touch-manipulation min-h-[44px] sm:min-h-0"
                     >
-                      <Pencil size={16} />
+                      <Pencil size={16} className="mr-1 sm:mr-0" />
+                      <span className="sm:hidden">編集</span>
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => openDeleteDialog(expense)}
+                      className="flex-1 sm:flex-initial touch-manipulation min-h-[44px] sm:min-h-0"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={16} className="mr-1 sm:mr-0" />
+                      <span className="sm:hidden">削除</span>
                     </Button>
                   </div>
                 </div>

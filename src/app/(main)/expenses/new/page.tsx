@@ -12,6 +12,7 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { formatCurrency, toISODateString } from '@/lib/formatters';
 import { getCategoryRemaining } from '@/lib/calculations';
 import { Check } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function NewExpensePage() {
   const router = useRouter();
@@ -55,9 +56,11 @@ export default function NewExpensePage() {
     });
 
     if (success) {
+      toast.success('支出を記録しました');
       router.push('/');
     } else {
       setError('支出の記録に失敗しました');
+      toast.error('支出の記録に失敗しました');
     }
 
     setLoading(false);
