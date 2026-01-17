@@ -9,6 +9,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatCurrency } from '@/lib/formatters';
+import { BankDetail, IncomeDetail, CreditDetail, NisaDetail } from '@/types/assets';
+import { BankBalanceDetailModal } from '@/components/assets/BankBalanceDetailModal';
+import { IncomeDetailModal } from '@/components/assets/IncomeDetailModal';
+import { CreditDetailModal } from '@/components/assets/CreditDetailModal';
+import { NisaDetailModal } from '@/components/assets/NisaDetailModal';
 import {
   ArrowLeft,
   Settings,
@@ -18,6 +23,7 @@ import {
   Edit,
   Check,
   Save,
+  ListTree,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -45,6 +51,18 @@ export default function AssetsPage() {
   const [nisaValue, setNisaValue] = useState('0');
   const [notes, setNotes] = useState('');
 
+  // Detail states
+  const [bankDetails, setBankDetails] = useState<BankDetail[]>([]);
+  const [incomeDetails, setIncomeDetails] = useState<IncomeDetail[]>([]);
+  const [creditDetails, setCreditDetails] = useState<CreditDetail[]>([]);
+  const [nisaDetails, setNisaDetails] = useState<NisaDetail[]>([]);
+
+  // Modal states
+  const [bankModalOpen, setBankModalOpen] = useState(false);
+  const [incomeModalOpen, setIncomeModalOpen] = useState(false);
+  const [creditModalOpen, setCreditModalOpen] = useState(false);
+  const [nisaModalOpen, setNisaModalOpen] = useState(false);
+
   const salaryDay = user?.salary_day || 25;
   const cardPaymentDay = user?.card_payment_day || 27;
   const bankBalanceDay = salaryDay - 1; // 給料日の前日
@@ -57,18 +75,50 @@ export default function AssetsPage() {
       setCreditExpenses(currentRecord.credit_expenses.toString());
       setNisaValue(currentRecord.nisa_value.toString());
       setNotes(currentRecord.notes || '');
+      setBankDetails(currentRecord.bank_details || []);
+      setIncomeDetails(currentRecord.income_details || []);
+      setCreditDetails(currentRecord.credit_details || []);
+      setNisaDetails(currentRecord.nisa_details || []);
     } else {
       setBankBalance('0');
       setMonthlyIncome('0');
       setCreditExpenses('0');
       setNisaValue('0');
       setNotes('');
+      setBankDetails([]);
+      setIncomeDetails([]);
+      setCreditDetails([]);
+      setNisaDetails([]);
     }
     setIsEditing(true);
   };
 
   const cancelEdit = () => {
     setIsEditing(false);
+  };
+
+  const handleBankDetailSave = (details: BankDetail[]) => {
+    setBankDetails(details);
+    const total = details.reduce((sum, d) => sum + d.balance, 0);
+    setBankBalance(total.toString());
+  };
+
+  const handleIncomeDetailSave = (details: IncomeDetail[]) => {
+    setIncomeDetails(details);
+    const total = details.reduce((sum, d) => sum + d.amount, 0);
+    setMonthlyIncome(total.toString());
+  };
+
+  const handleCreditDetailSave = (details: CreditDetail[]) => {
+    setCreditDetails(details);
+    const total = details.reduce((sum, d) => sum + d.amount, 0);
+    setCreditExpenses(total.toString());
+  };
+
+  const handleNisaDetailSave = (details: NisaDetail[]) => {
+    setNisaDetails(details);
+    const total = details.reduce((sum, d) => sum + d.value, 0);
+    setNisaValue(total.toString());
   };
 
   const saveRecord = async () => {
@@ -80,6 +130,10 @@ export default function AssetsPage() {
         credit_expenses: parseInt(creditExpenses) || 0,
         nisa_value: parseInt(nisaValue) || 0,
         notes: notes || undefined,
+        bank_details: bankDetails.length > 0 ? bankDetails : undefined,
+        income_details: incomeDetails.length > 0 ? incomeDetails : undefined,
+        credit_details: creditDetails.length > 0 ? creditDetails : undefined,
+        nisa_details: nisaDetails.length > 0 ? nisaDetails : undefined,
       },
       false
     );
@@ -209,75 +263,175 @@ export default function AssetsPage() {
 
           {/* Bank Balance */}
           <div>
-            <Label className="text-sm font-medium">
-              口座残高（{bankBalanceDay}日時点）
-            </Label>
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-sm font-medium">
+                口座残高（{bankBalanceDay}日時点）
+              </Label>
+              {isEditing && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setBankModalOpen(true)}
+                  className="text-xs h-7"
+                >
+                  <ListTree size={14} className="mr-1" />
+                  詳細
+                </Button>
+              )}
+            </div>
             {isEditing ? (
               <Input
                 type="number"
                 value={bankBalance}
                 onChange={(e) => setBankBalance(e.target.value)}
-                className="mt-2 text-lg font-bold"
+                className="mt-1 text-lg font-bold"
                 placeholder="0"
               />
             ) : (
-              <p className="text-2xl font-bold text-blue-700 mt-2">
-                {formatCurrency(displayBankBalance)}
-              </p>
+              <div>
+                <p className="text-2xl font-bold text-blue-700">
+                  {formatCurrency(displayBankBalance)}
+                </p>
+                {currentRecord?.bank_details && currentRecord.bank_details.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {currentRecord.bank_details.map((detail, idx) => (
+                      <div key={idx} className="text-sm text-muted-foreground flex justify-between">
+                        <span>{detail.name}</span>
+                        <span>{formatCurrency(detail.balance)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
           {/* Monthly Income */}
           <div>
-            <Label className="text-sm font-medium">今月の収入</Label>
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-sm font-medium">今月の収入</Label>
+              {isEditing && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setIncomeModalOpen(true)}
+                  className="text-xs h-7"
+                >
+                  <ListTree size={14} className="mr-1" />
+                  詳細
+                </Button>
+              )}
+            </div>
             {isEditing ? (
               <Input
                 type="number"
                 value={monthlyIncome}
                 onChange={(e) => setMonthlyIncome(e.target.value)}
-                className="mt-2 text-lg font-bold"
+                className="mt-1 text-lg font-bold"
                 placeholder="0"
               />
             ) : (
-              <p className="text-2xl font-bold text-green-700 mt-2">
-                {formatCurrency(displayIncome)}
-              </p>
+              <div>
+                <p className="text-2xl font-bold text-green-700">
+                  {formatCurrency(displayIncome)}
+                </p>
+                {currentRecord?.income_details && currentRecord.income_details.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {currentRecord.income_details.map((detail, idx) => (
+                      <div key={idx} className="text-sm text-muted-foreground flex justify-between">
+                        <span>{detail.name}</span>
+                        <span>{formatCurrency(detail.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
           {/* Credit Expenses */}
           <div>
-            <Label className="text-sm font-medium">今月の支出（クレジット）</Label>
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-sm font-medium">今月の支出（クレジット）</Label>
+              {isEditing && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setCreditModalOpen(true)}
+                  className="text-xs h-7"
+                >
+                  <ListTree size={14} className="mr-1" />
+                  詳細
+                </Button>
+              )}
+            </div>
             {isEditing ? (
               <Input
                 type="number"
                 value={creditExpenses}
                 onChange={(e) => setCreditExpenses(e.target.value)}
-                className="mt-2 text-lg font-bold"
+                className="mt-1 text-lg font-bold"
                 placeholder="0"
               />
             ) : (
-              <p className="text-2xl font-bold text-red-700 mt-2">
-                {formatCurrency(displayCredit)}
-              </p>
+              <div>
+                <p className="text-2xl font-bold text-red-700">
+                  {formatCurrency(displayCredit)}
+                </p>
+                {currentRecord?.credit_details && currentRecord.credit_details.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {currentRecord.credit_details.map((detail, idx) => (
+                      <div key={idx} className="text-sm text-muted-foreground flex justify-between">
+                        <span>{detail.name}</span>
+                        <span>{formatCurrency(detail.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
           {/* NISA Value */}
           <div>
-            <Label className="text-sm font-medium">NISA評価額</Label>
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-sm font-medium">NISA評価額</Label>
+              {isEditing && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setNisaModalOpen(true)}
+                  className="text-xs h-7"
+                >
+                  <ListTree size={14} className="mr-1" />
+                  詳細
+                </Button>
+              )}
+            </div>
             {isEditing ? (
               <Input
                 type="number"
                 value={nisaValue}
                 onChange={(e) => setNisaValue(e.target.value)}
-                className="mt-2 text-lg font-bold"
+                className="mt-1 text-lg font-bold"
                 placeholder="0"
               />
             ) : (
-              <p className="text-2xl font-bold text-purple-700 mt-2">
-                {formatCurrency(displayNisa)}
-              </p>
+              <div>
+                <p className="text-2xl font-bold text-purple-700">
+                  {formatCurrency(displayNisa)}
+                </p>
+                {currentRecord?.nisa_details && currentRecord.nisa_details.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {currentRecord.nisa_details.map((detail, idx) => (
+                      <div key={idx} className="text-sm text-muted-foreground flex justify-between">
+                        <span>{detail.name}</span>
+                        <span>{formatCurrency(detail.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
@@ -317,6 +471,32 @@ export default function AssetsPage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Detail Modals */}
+      <BankBalanceDetailModal
+        open={bankModalOpen}
+        onOpenChange={setBankModalOpen}
+        details={bankDetails}
+        onSave={handleBankDetailSave}
+      />
+      <IncomeDetailModal
+        open={incomeModalOpen}
+        onOpenChange={setIncomeModalOpen}
+        details={incomeDetails}
+        onSave={handleIncomeDetailSave}
+      />
+      <CreditDetailModal
+        open={creditModalOpen}
+        onOpenChange={setCreditModalOpen}
+        details={creditDetails}
+        onSave={handleCreditDetailSave}
+      />
+      <NisaDetailModal
+        open={nisaModalOpen}
+        onOpenChange={setNisaModalOpen}
+        details={nisaDetails}
+        onSave={handleNisaDetailSave}
+      />
     </div>
   );
 }

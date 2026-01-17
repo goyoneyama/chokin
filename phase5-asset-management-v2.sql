@@ -40,6 +40,12 @@ CREATE TABLE IF NOT EXISTS monthly_asset_records (
   -- Optional notes
   notes TEXT,
 
+  -- Detailed breakdowns (JSON)
+  bank_details JSONB DEFAULT '[]'::jsonb,
+  income_details JSONB DEFAULT '[]'::jsonb,
+  credit_details JSONB DEFAULT '[]'::jsonb,
+  nisa_details JSONB DEFAULT '[]'::jsonb,
+
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 
@@ -89,6 +95,20 @@ CREATE TRIGGER update_monthly_asset_records_updated_at
 -- - credit_cards: Individual cards (balances will be aggregated to monthly_asset_records)
 
 -- ============================================
--- 6. Drop old monthly_snapshots if exists (replaced by monthly_asset_records)
+-- 6. Add detail columns to existing monthly_asset_records (if already created)
+-- ============================================
+ALTER TABLE monthly_asset_records
+ADD COLUMN IF NOT EXISTS bank_details JSONB DEFAULT '[]'::jsonb,
+ADD COLUMN IF NOT EXISTS income_details JSONB DEFAULT '[]'::jsonb,
+ADD COLUMN IF NOT EXISTS credit_details JSONB DEFAULT '[]'::jsonb,
+ADD COLUMN IF NOT EXISTS nisa_details JSONB DEFAULT '[]'::jsonb;
+
+COMMENT ON COLUMN monthly_asset_records.bank_details IS '銀行口座の詳細（JSON配列）';
+COMMENT ON COLUMN monthly_asset_records.income_details IS '収入の詳細（JSON配列）';
+COMMENT ON COLUMN monthly_asset_records.credit_details IS 'クレジットカード支出の詳細（JSON配列）';
+COMMENT ON COLUMN monthly_asset_records.nisa_details IS 'NISA口座の詳細（JSON配列）';
+
+-- ============================================
+-- 7. Drop old monthly_snapshots if exists (replaced by monthly_asset_records)
 -- ============================================
 DROP TABLE IF EXISTS monthly_snapshots CASCADE;

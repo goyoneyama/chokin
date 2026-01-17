@@ -70,6 +70,31 @@ export interface IncomeRecord {
   updated_at: string;
 }
 
+// Detail types for monthly records
+export interface BankDetail {
+  id?: string; // bank_account_id if linked
+  name: string;
+  balance: number;
+}
+
+export interface IncomeDetail {
+  id?: string; // income_record_id if linked
+  name: string;
+  amount: number;
+}
+
+export interface CreditDetail {
+  id?: string; // credit_card_id if linked
+  name: string;
+  amount: number;
+}
+
+export interface NisaDetail {
+  id?: string; // nisa_account_id if linked
+  name: string;
+  value: number;
+}
+
 export interface MonthlyAssetRecord {
   id: string;
   user_id: string;
@@ -81,6 +106,10 @@ export interface MonthlyAssetRecord {
   calculated_balance: number;
   is_confirmed: boolean;
   notes: string | null;
+  bank_details: BankDetail[] | null;
+  income_details: IncomeDetail[] | null;
+  credit_details: CreditDetail[] | null;
+  nisa_details: NisaDetail[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -91,54 +120,13 @@ export interface MonthlyAssetRecordFormData {
   credit_expenses: number;
   nisa_value: number;
   notes?: string;
+  bank_details?: BankDetail[];
+  income_details?: IncomeDetail[];
+  credit_details?: CreditDetail[];
+  nisa_details?: NisaDetail[];
 }
 
-// Legacy - keep for backwards compatibility
-export interface MonthlySnapshot {
-  id: string;
-  user_id: string;
-  year_month: string;
-  total_income: number;
-  total_expenses: number;
-  monthly_balance: number;
-  total_bank_balance: number;
-  total_nisa_value: number;
-  total_credit_balance: number;
-  net_worth: number;
-  bank_details: BankAccountDetail[] | null;
-  nisa_details: NisaAccountDetail[] | null;
-  credit_details: CreditCardDetail[] | null;
-  income_details: IncomeDetail[] | null;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-// JSON detail types for snapshots
-export interface BankAccountDetail {
-  id: string;
-  name: string;
-  balance: number;
-}
-
-export interface NisaAccountDetail {
-  id: string;
-  name: string;
-  value: number;
-  invested: number;
-}
-
-export interface CreditCardDetail {
-  id: string;
-  name: string;
-  balance: number;
-}
-
-export interface IncomeDetail {
-  id: string;
-  name: string;
-  amount: number;
-}
+// Legacy types removed - monthly_snapshots table has been replaced by monthly_asset_records
 
 // Form data types
 export interface BankAccountFormData {
