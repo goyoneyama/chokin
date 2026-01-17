@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { InstallPWA } from '@/components/InstallPWA';
-import { LogOut, User, Mail, FolderEdit, Wallet, ChevronRight, MessageCircle } from 'lucide-react';
+import { LogOut, User, Mail, FolderEdit, Wallet, ChevronRight, MessageCircle, Landmark, Lock } from 'lucide-react';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -86,6 +86,28 @@ export default function SettingsPage() {
                 </div>
               </div>
               <ChevronRight className="text-muted-foreground" size={20} />
+            </Button>
+          </Link>
+          <Link href="/assets">
+            <Button
+              variant="ghost"
+              className="w-full justify-between h-auto py-4"
+            >
+              <div className="flex items-center space-x-3">
+                <div className="p-2 rounded-lg bg-purple-100">
+                  <Landmark className="text-purple-700" size={20} />
+                </div>
+                <div className="text-left">
+                  <p className="font-medium">資産管理</p>
+                  <p className="text-xs text-muted-foreground">
+                    銀行口座・NISA・クレジットカード・収入
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center">
+                <Lock className="text-muted-foreground mr-1" size={14} />
+                <ChevronRight className="text-muted-foreground" size={20} />
+              </div>
             </Button>
           </Link>
         </CardContent>
