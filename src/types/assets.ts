@@ -70,6 +70,30 @@ export interface IncomeRecord {
   updated_at: string;
 }
 
+export interface MonthlyAssetRecord {
+  id: string;
+  user_id: string;
+  year_month: string;
+  bank_balance: number;
+  monthly_income: number;
+  credit_expenses: number;
+  nisa_value: number;
+  calculated_balance: number;
+  is_confirmed: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MonthlyAssetRecordFormData {
+  bank_balance: number;
+  monthly_income: number;
+  credit_expenses: number;
+  nisa_value: number;
+  notes?: string;
+}
+
+// Legacy - keep for backwards compatibility
 export interface MonthlySnapshot {
   id: string;
   user_id: string;

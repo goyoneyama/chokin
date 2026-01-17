@@ -8,6 +8,8 @@ export interface User {
   display_name: string | null;
   line_user_id: string | null;
   monthly_income: number;
+  salary_day: number;
+  card_payment_day: number;
   created_at: string;
   updated_at: string;
 }

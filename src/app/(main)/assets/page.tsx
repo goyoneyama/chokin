@@ -1,33 +1,105 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { useBankAccounts } from '@/hooks/useBankAccounts';
-import { useNisaAccounts } from '@/hooks/useNisaAccounts';
-import { useCreditCards } from '@/hooks/useCreditCards';
-import { useIncomeRecords } from '@/hooks/useIncomeRecords';
+import { useMonthlyAssetRecords } from '@/hooks/useMonthlyAssetRecords';
+import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { formatCurrency } from '@/lib/formatters';
 import {
   ArrowLeft,
-  Building2,
-  TrendingUp,
-  CreditCard,
-  Wallet,
   Settings,
-  History,
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  Edit,
+  Check,
+  Save,
 } from 'lucide-react';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
+import { ja } from 'date-fns/locale';
 
 export default function AssetsPage() {
   const router = useRouter();
-  const { bankAccounts, totalBalance: bankTotal, loading: bankLoading } = useBankAccounts();
-  const { nisaAccounts, totalValue: nisaTotal, loading: nisaLoading } = useNisaAccounts();
-  const { creditCards, totalBalance: creditTotal, loading: creditLoading } = useCreditCards();
-  const { incomeRecords, monthlyIncome, loading: incomeLoading } = useIncomeRecords();
+  const { user } = useAuthStore();
+  const {
+    currentRecord,
+    loading,
+    yearMonth,
+    currentMonth,
+    upsertRecord,
+    goToPreviousMonth,
+    goToNextMonth,
+    goToToday,
+    confirmRecord,
+  } = useMonthlyAssetRecords();
 
-  const loading = bankLoading || nisaLoading || creditLoading || incomeLoading;
-  const netWorth = bankTotal + nisaTotal - creditTotal;
+  const [isEditing, setIsEditing] = useState(false);
+  const [bankBalance, setBankBalance] = useState('0');
+  const [monthlyIncome, setMonthlyIncome] = useState('0');
+  const [creditExpenses, setCreditExpenses] = useState('0');
+  const [nisaValue, setNisaValue] = useState('0');
+  const [notes, setNotes] = useState('');
+
+  const salaryDay = user?.salary_day || 25;
+  const cardPaymentDay = user?.card_payment_day || 27;
+  const bankBalanceDay = salaryDay - 1; // 給料日の前日
+
+  // Load data into form when editing
+  const startEdit = () => {
+    if (currentRecord) {
+      setBankBalance(currentRecord.bank_balance.toString());
+      setMonthlyIncome(currentRecord.monthly_income.toString());
+      setCreditExpenses(currentRecord.credit_expenses.toString());
+      setNisaValue(currentRecord.nisa_value.toString());
+      setNotes(currentRecord.notes || '');
+    } else {
+      setBankBalance('0');
+      setMonthlyIncome('0');
+      setCreditExpenses('0');
+      setNisaValue('0');
+      setNotes('');
+    }
+    setIsEditing(true);
+  };
+
+  const cancelEdit = () => {
+    setIsEditing(false);
+  };
+
+  const saveRecord = async () => {
+    const success = await upsertRecord(
+      yearMonth,
+      {
+        bank_balance: parseInt(bankBalance) || 0,
+        monthly_income: parseInt(monthlyIncome) || 0,
+        credit_expenses: parseInt(creditExpenses) || 0,
+        nisa_value: parseInt(nisaValue) || 0,
+        notes: notes || undefined,
+      },
+      false
+    );
+
+    if (success) {
+      toast.success('保存しました');
+      setIsEditing(false);
+    } else {
+      toast.error('保存に失敗しました');
+    }
+  };
+
+  const handleConfirm = async () => {
+    const success = await confirmRecord();
+    if (success) {
+      toast.success('確定しました');
+    } else {
+      toast.error('確定に失敗しました');
+    }
+  };
 
   if (loading) {
     return (
@@ -38,21 +110,19 @@ export default function AssetsPage() {
         </div>
         <Card className="mb-6">
           <CardContent className="p-4">
-            <div className="h-24 bg-gray-100 rounded animate-pulse" />
+            <div className="h-48 bg-gray-100 rounded animate-pulse" />
           </CardContent>
         </Card>
-        <div className="grid grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i}>
-              <CardContent className="p-4">
-                <div className="h-20 bg-gray-100 rounded animate-pulse" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
       </div>
     );
   }
+
+  const calculatedBalance = (parseInt(bankBalance) || 0) + (parseInt(monthlyIncome) || 0) - (parseInt(creditExpenses) || 0);
+  const displayBalance = isEditing ? calculatedBalance : (currentRecord?.calculated_balance || 0);
+  const displayBankBalance = isEditing ? (parseInt(bankBalance) || 0) : (currentRecord?.bank_balance || 0);
+  const displayIncome = isEditing ? (parseInt(monthlyIncome) || 0) : (currentRecord?.monthly_income || 0);
+  const displayCredit = isEditing ? (parseInt(creditExpenses) || 0) : (currentRecord?.credit_expenses || 0);
+  const displayNisa = isEditing ? (parseInt(nisaValue) || 0) : (currentRecord?.nisa_value || 0);
 
   return (
     <div className="container mx-auto p-4 max-w-4xl pb-24">
@@ -64,116 +134,189 @@ export default function AssetsPage() {
           </Button>
           <h1 className="text-2xl font-bold">資産管理</h1>
         </div>
-        <Link href="/assets/settings">
-          <Button variant="ghost" size="sm">
-            <Settings size={20} />
-          </Button>
-        </Link>
+        <Button variant="ghost" size="sm" onClick={() => router.push('/assets/settings')}>
+          <Settings size={20} />
+        </Button>
       </div>
 
-      {/* Net Worth Summary Card */}
-      <Card className="mb-6 bg-gradient-to-br from-primary/10 to-primary/5">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-muted-foreground">純資産</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-3xl font-bold">{formatCurrency(netWorth)}</div>
-          <div className="mt-4 pt-4 border-t space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">資産合計</span>
-              <span className="font-medium text-green-600">{formatCurrency(bankTotal + nisaTotal)}</span>
+      {/* Month Selector */}
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <Button variant="outline" size="sm" onClick={goToPreviousMonth}>
+              <ChevronLeft size={16} />
+            </Button>
+            <div className="flex items-center space-x-3">
+              <h2 className="text-xl font-semibold">
+                {format(currentMonth, 'yyyy年M月', { locale: ja })}
+              </h2>
+              <Button variant="outline" size="sm" onClick={goToToday}>
+                <Calendar size={14} className="mr-1" />
+                今月
+              </Button>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">負債合計</span>
-              <span className="font-medium text-red-600">-{formatCurrency(creditTotal)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">月間収入</span>
-              <span className="font-medium">{formatCurrency(monthlyIncome)}</span>
-            </div>
+            <Button variant="outline" size="sm" onClick={goToNextMonth}>
+              <ChevronRight size={16} />
+            </Button>
           </div>
+
+          {currentRecord && !currentRecord.is_confirmed && (
+            <div className="mt-3 pt-3 border-t">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-orange-600 font-medium">予測データ</span>
+                <Button size="sm" variant="outline" onClick={handleConfirm}>
+                  <Check size={14} className="mr-1" />
+                  確定する
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Asset Categories */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <Link href="/assets/bank">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <div className="p-2 rounded-full bg-blue-100">
-                  <Building2 className="w-4 h-4 text-blue-700" />
-                </div>
-                <span className="font-medium text-sm">銀行口座</span>
-              </div>
-              <p className="text-lg font-bold text-blue-700">{formatCurrency(bankTotal)}</p>
-              <p className="text-xs text-muted-foreground">{bankAccounts.length}件</p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/assets/nisa">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <div className="p-2 rounded-full bg-green-100">
-                  <TrendingUp className="w-4 h-4 text-green-700" />
-                </div>
-                <span className="font-medium text-sm">NISA</span>
-              </div>
-              <p className="text-lg font-bold text-green-700">{formatCurrency(nisaTotal)}</p>
-              <p className="text-xs text-muted-foreground">{nisaAccounts.length}件</p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/assets/cards">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <div className="p-2 rounded-full bg-orange-100">
-                  <CreditCard className="w-4 h-4 text-orange-700" />
-                </div>
-                <span className="font-medium text-sm">クレジットカード</span>
-              </div>
-              <p className="text-lg font-bold text-orange-700">-{formatCurrency(creditTotal)}</p>
-              <p className="text-xs text-muted-foreground">{creditCards.length}件</p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/assets/income">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <div className="p-2 rounded-full bg-purple-100">
-                  <Wallet className="w-4 h-4 text-purple-700" />
-                </div>
-                <span className="font-medium text-sm">収入</span>
-              </div>
-              <p className="text-lg font-bold text-purple-700">{formatCurrency(monthlyIncome)}/月</p>
-              <p className="text-xs text-muted-foreground">{incomeRecords.length}件</p>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
-
-      {/* History Link */}
-      <Link href="/assets/history">
-        <Card className="hover:shadow-md transition-shadow cursor-pointer">
-          <CardContent className="p-4 flex items-center space-x-3">
-            <div className="p-2 rounded-lg bg-gray-100">
-              <History className="w-5 h-5 text-gray-700" />
+      {/* Main Data Card */}
+      <Card className="mb-6">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>{format(currentMonth, 'M月', { locale: ja })}の資産状況</CardTitle>
+          {!isEditing ? (
+            <Button size="sm" variant="outline" onClick={startEdit}>
+              <Edit size={14} className="mr-1" />
+              編集
+            </Button>
+          ) : (
+            <div className="flex space-x-2">
+              <Button size="sm" variant="outline" onClick={cancelEdit}>
+                キャンセル
+              </Button>
+              <Button size="sm" onClick={saveRecord}>
+                <Save size={14} className="mr-1" />
+                保存
+              </Button>
             </div>
-            <div className="flex-1">
-              <p className="font-medium">月次履歴</p>
-              <p className="text-sm text-muted-foreground">
-                スプレッドシート風の月別推移を確認
+          )}
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Asset Total */}
+          <div className="p-4 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5">
+            <p className="text-sm text-muted-foreground mb-1">
+              資産合計（{cardPaymentDay}日時点）
+            </p>
+            <p className="text-3xl font-bold">{formatCurrency(displayBalance)}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              = 口座残高 + 収入 - 支出
+            </p>
+          </div>
+
+          {/* Bank Balance */}
+          <div>
+            <Label className="text-sm font-medium">
+              口座残高（{bankBalanceDay}日時点）
+            </Label>
+            {isEditing ? (
+              <Input
+                type="number"
+                value={bankBalance}
+                onChange={(e) => setBankBalance(e.target.value)}
+                className="mt-2 text-lg font-bold"
+                placeholder="0"
+              />
+            ) : (
+              <p className="text-2xl font-bold text-blue-700 mt-2">
+                {formatCurrency(displayBankBalance)}
               </p>
+            )}
+          </div>
+
+          {/* Monthly Income */}
+          <div>
+            <Label className="text-sm font-medium">今月の収入</Label>
+            {isEditing ? (
+              <Input
+                type="number"
+                value={monthlyIncome}
+                onChange={(e) => setMonthlyIncome(e.target.value)}
+                className="mt-2 text-lg font-bold"
+                placeholder="0"
+              />
+            ) : (
+              <p className="text-2xl font-bold text-green-700 mt-2">
+                {formatCurrency(displayIncome)}
+              </p>
+            )}
+          </div>
+
+          {/* Credit Expenses */}
+          <div>
+            <Label className="text-sm font-medium">今月の支出（クレジット）</Label>
+            {isEditing ? (
+              <Input
+                type="number"
+                value={creditExpenses}
+                onChange={(e) => setCreditExpenses(e.target.value)}
+                className="mt-2 text-lg font-bold"
+                placeholder="0"
+              />
+            ) : (
+              <p className="text-2xl font-bold text-red-700 mt-2">
+                {formatCurrency(displayCredit)}
+              </p>
+            )}
+          </div>
+
+          {/* NISA Value */}
+          <div>
+            <Label className="text-sm font-medium">NISA評価額</Label>
+            {isEditing ? (
+              <Input
+                type="number"
+                value={nisaValue}
+                onChange={(e) => setNisaValue(e.target.value)}
+                className="mt-2 text-lg font-bold"
+                placeholder="0"
+              />
+            ) : (
+              <p className="text-2xl font-bold text-purple-700 mt-2">
+                {formatCurrency(displayNisa)}
+              </p>
+            )}
+          </div>
+
+          {/* Notes */}
+          {isEditing && (
+            <div>
+              <Label className="text-sm font-medium">メモ（任意）</Label>
+              <Input
+                type="text"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="mt-2"
+                placeholder="メモを入力"
+              />
             </div>
-          </CardContent>
-        </Card>
-      </Link>
+          )}
+
+          {currentRecord?.notes && !isEditing && (
+            <div className="pt-3 border-t">
+              <p className="text-sm text-muted-foreground">{currentRecord.notes}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Info Card */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardContent className="p-4">
+          <p className="text-sm text-blue-800">
+            <strong>基準日について:</strong>
+            <br />
+            ・口座残高は給料日前日（{bankBalanceDay}日）の値を入力
+            <br />
+            ・資産合計はカード支払日（{cardPaymentDay}日）時点で自動計算
+            <br />
+            ・次月は自動で予測値が設定されます
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

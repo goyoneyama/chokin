@@ -1,11 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAssetPin } from '@/hooks/useAssetPin';
+import { useAuthStore } from '@/store/useAuthStore';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Lock, KeyRound, Trash2, Delete } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ArrowLeft, Lock, KeyRound, Trash2, Delete, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { validatePinFormat, pinsMatch } from '@/lib/pin';
 import {
@@ -23,6 +27,7 @@ type ChangeStep = 'current' | 'new' | 'confirm';
 export default function AssetSettingsPage() {
   const router = useRouter();
   const { changePin, removePin } = useAssetPin();
+  const { user, fetchUser } = useAuthStore();
 
   const [mode, setMode] = useState<Mode>('main');
   const [changeStep, setChangeStep] = useState<ChangeStep>('current');
@@ -33,6 +38,18 @@ export default function AssetSettingsPage() {
   const [loading, setLoading] = useState(false);
   const [isRemoveOpen, setIsRemoveOpen] = useState(false);
 
+  // Reference date settings
+  const [salaryDay, setSalaryDay] = useState<string>('25');
+  const [cardPaymentDay, setCardPaymentDay] = useState<string>('27');
+  const [isSavingDates, setIsSavingDates] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setSalaryDay(user.salary_day?.toString() || '25');
+      setCardPaymentDay(user.card_payment_day?.toString() || '27');
+    }
+  }, [user]);
+
   const resetState = () => {
     setMode('main');
     setChangeStep('current');
@@ -40,6 +57,48 @@ export default function AssetSettingsPage() {
     setCurrentPin('');
     setNewPin('');
     setError(null);
+  };
+
+  const handleSaveReferenceDates = async () => {
+    if (!user) return;
+
+    const salaryDayNum = parseInt(salaryDay);
+    const cardPaymentDayNum = parseInt(cardPaymentDay);
+
+    // Validation
+    if (isNaN(salaryDayNum) || salaryDayNum < 1 || salaryDayNum > 31) {
+      toast.error('給料日は1〜31の間で入力してください');
+      return;
+    }
+
+    if (isNaN(cardPaymentDayNum) || cardPaymentDayNum < 1 || cardPaymentDayNum > 31) {
+      toast.error('カード支払日は1〜31の間で入力してください');
+      return;
+    }
+
+    setIsSavingDates(true);
+
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({
+          salary_day: salaryDayNum,
+          card_payment_day: cardPaymentDayNum,
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        toast.error('保存に失敗しました');
+        return;
+      }
+
+      await fetchUser();
+      toast.success('基準日を更新しました');
+    } catch (err) {
+      toast.error('保存に失敗しました');
+    } finally {
+      setIsSavingDates(false);
+    }
   };
 
   const handleNumberClick = async (num: string) => {
@@ -194,9 +253,67 @@ export default function AssetSettingsPage() {
         <Button variant="ghost" size="sm" onClick={() => router.push('/assets')}>
           <ArrowLeft size={20} />
         </Button>
-        <h1 className="text-2xl font-bold">PIN設定</h1>
+        <h1 className="text-2xl font-bold">資産管理設定</h1>
       </div>
 
+      {/* Reference Date Settings */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Calendar className="w-5 h-5" />
+            <span>基準日設定</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="salary-day" className="text-sm font-medium">
+              給料日
+            </Label>
+            <Input
+              id="salary-day"
+              type="number"
+              min="1"
+              max="31"
+              value={salaryDay}
+              onChange={(e) => setSalaryDay(e.target.value)}
+              className="mt-2"
+              placeholder="25"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              口座残高は給料日の前日（{parseInt(salaryDay) - 1 || 24}日）時点で記録します
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="card-payment-day" className="text-sm font-medium">
+              カード支払日
+            </Label>
+            <Input
+              id="card-payment-day"
+              type="number"
+              min="1"
+              max="31"
+              value={cardPaymentDay}
+              onChange={(e) => setCardPaymentDay(e.target.value)}
+              className="mt-2"
+              placeholder="27"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              資産合計はこの日時点で自動計算されます
+            </p>
+          </div>
+
+          <Button
+            onClick={handleSaveReferenceDates}
+            disabled={isSavingDates}
+            className="w-full"
+          >
+            {isSavingDates ? '保存中...' : '基準日を保存'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* PIN Security */}
       <Card className="mb-6">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
