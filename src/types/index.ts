@@ -2,6 +2,12 @@
 // ユーザー関連の型定義
 // ============================================
 
+// Default credit card for monthly auto-generation
+export interface DefaultCreditCard {
+  name: string;
+  amount: number;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -10,6 +16,7 @@ export interface User {
   monthly_income: number;
   salary_day: number;
   card_payment_day: number;
+  default_credit_cards: DefaultCreditCard[] | null;
   created_at: string;
   updated_at: string;
 }

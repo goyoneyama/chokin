@@ -108,18 +108,31 @@ export function useMonthlyAssetRecords(targetMonth?: Date) {
     // Get recurring income
     const { data: incomeRecords } = await supabase
       .from('income_records')
-      .select('amount, frequency')
+      .select('*')
       .eq('user_id', user.id)
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .eq('frequency', 'monthly');
 
-    const monthlyIncome = incomeRecords?.reduce((sum, record) => {
-      if (record.frequency === 'monthly') {
-        return sum + record.amount;
-      }
-      return sum;
-    }, 0) || 0;
+    const monthlyIncome = incomeRecords?.reduce((sum, record) => sum + record.amount, 0) || 0;
 
-    // Next month's bank balance = current month's calculated balance at payment day (27th)
+    // Get income details for next month
+    const incomeDetails = incomeRecords?.map(record => ({
+      id: record.id,
+      name: record.name,
+      amount: record.amount,
+    })) || [];
+
+    // Get default credit cards from user settings
+    const defaultCreditCards = user.default_credit_cards || [];
+    const totalCreditExpenses = defaultCreditCards.reduce((sum, card) => sum + card.amount, 0);
+
+    // Get credit card details for next month
+    const creditDetails = defaultCreditCards.map(card => ({
+      name: card.name,
+      amount: card.amount,
+    }));
+
+    // Next month's bank balance = current month's calculated balance at payment day
     const nextBankBalance = currentMonthData.calculated_balance;
 
     // Next month's NISA = current + monthly contribution
@@ -128,8 +141,10 @@ export function useMonthlyAssetRecords(targetMonth?: Date) {
     return {
       bank_balance: nextBankBalance,
       monthly_income: monthlyIncome,
-      credit_expenses: 0, // Reset credit expenses
+      credit_expenses: totalCreditExpenses,
       nisa_value: nextNisaValue,
+      income_details: incomeDetails.length > 0 ? incomeDetails : undefined,
+      credit_details: creditDetails.length > 0 ? creditDetails : undefined,
     };
   };
 

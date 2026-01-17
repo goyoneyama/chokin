@@ -9,9 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Lock, KeyRound, Trash2, Delete, Calendar } from 'lucide-react';
+import { ArrowLeft, Lock, KeyRound, Trash2, Delete, Calendar, Repeat, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { validatePinFormat, pinsMatch } from '@/lib/pin';
+import { DefaultCreditCard } from '@/types';
+import { IncomeRecord } from '@/types/assets';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { formatCurrency } from '@/lib/formatters';
 
 type Mode = 'main' | 'change' | 'remove';
 type ChangeStep = 'current' | 'new' | 'confirm';
@@ -43,12 +46,57 @@ export default function AssetSettingsPage() {
   const [cardPaymentDay, setCardPaymentDay] = useState<string>('27');
   const [isSavingDates, setIsSavingDates] = useState(false);
 
+  // Default settings
+  const [incomeRecords, setIncomeRecords] = useState<IncomeRecord[]>([]);
+  const [defaultCreditCards, setDefaultCreditCards] = useState<DefaultCreditCard[]>([]);
+  const [totalNisaContribution, setTotalNisaContribution] = useState(0);
+  const [isSavingDefaults, setIsSavingDefaults] = useState(false);
+  const [isLoadingDefaults, setIsLoadingDefaults] = useState(true);
+
   useEffect(() => {
     if (user) {
       setSalaryDay(user.salary_day?.toString() || '25');
       setCardPaymentDay(user.card_payment_day?.toString() || '27');
+      setDefaultCreditCards(user.default_credit_cards || []);
+      loadDefaultSettings();
     }
   }, [user]);
+
+  const loadDefaultSettings = async () => {
+    if (!user) return;
+
+    setIsLoadingDefaults(true);
+    try {
+      // Load income records
+      const { data: incomeData } = await supabase
+        .from('income_records')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .eq('frequency', 'monthly')
+        .order('created_at', { ascending: true });
+
+      if (incomeData) {
+        setIncomeRecords(incomeData as IncomeRecord[]);
+      }
+
+      // Load NISA total contribution
+      const { data: nisaData } = await supabase
+        .from('nisa_accounts')
+        .select('monthly_contribution')
+        .eq('user_id', user.id)
+        .eq('is_active', true);
+
+      if (nisaData) {
+        const total = nisaData.reduce((sum, acc) => sum + acc.monthly_contribution, 0);
+        setTotalNisaContribution(total);
+      }
+    } catch (err) {
+      console.error('Error loading defaults:', err);
+    } finally {
+      setIsLoadingDefaults(false);
+    }
+  };
 
   const resetState = () => {
     setMode('main');
@@ -98,6 +146,89 @@ export default function AssetSettingsPage() {
       toast.error('保存に失敗しました');
     } finally {
       setIsSavingDates(false);
+    }
+  };
+
+  const addIncome = () => {
+    setIncomeRecords([...incomeRecords, {
+      id: '',
+      user_id: user!.id,
+      name: '',
+      income_type: 'salary',
+      amount: 0,
+      frequency: 'monthly',
+      is_active: true,
+      created_at: '',
+      updated_at: ''
+    }]);
+  };
+
+  const updateIncome = (index: number, field: 'name' | 'amount', value: string | number) => {
+    const updated = [...incomeRecords];
+    updated[index] = { ...updated[index], [field]: value };
+    setIncomeRecords(updated);
+  };
+
+  const removeIncome = (index: number) => {
+    setIncomeRecords(incomeRecords.filter((_, i) => i !== index));
+  };
+
+  const addCreditCard = () => {
+    setDefaultCreditCards([...defaultCreditCards, { name: '', amount: 0 }]);
+  };
+
+  const updateCreditCard = (index: number, field: 'name' | 'amount', value: string | number) => {
+    const updated = [...defaultCreditCards];
+    updated[index] = { ...updated[index], [field]: value };
+    setDefaultCreditCards(updated);
+  };
+
+  const removeCreditCard = (index: number) => {
+    setDefaultCreditCards(defaultCreditCards.filter((_, i) => i !== index));
+  };
+
+  const handleSaveDefaults = async () => {
+    if (!user) return;
+
+    setIsSavingDefaults(true);
+
+    try {
+      // Save income records - delete all and recreate
+      await supabase
+        .from('income_records')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('frequency', 'monthly');
+
+      const validIncomes = incomeRecords.filter(inc => inc.name.trim() !== '' && inc.amount > 0);
+      if (validIncomes.length > 0) {
+        const incomesToInsert = validIncomes.map(inc => ({
+          user_id: user.id,
+          name: inc.name,
+          income_type: 'salary' as const,
+          amount: inc.amount,
+          frequency: 'monthly' as const,
+          is_active: true,
+        }));
+
+        await supabase.from('income_records').insert(incomesToInsert);
+      }
+
+      // Save default credit cards
+      const validCards = defaultCreditCards.filter(card => card.name.trim() !== '');
+      await supabase
+        .from('users')
+        .update({ default_credit_cards: validCards })
+        .eq('id', user.id);
+
+      await fetchUser();
+      await loadDefaultSettings();
+      toast.success('デフォルト値を保存しました');
+    } catch (err) {
+      console.error('Error saving defaults:', err);
+      toast.error('保存に失敗しました');
+    } finally {
+      setIsSavingDefaults(false);
     }
   };
 
@@ -309,6 +440,128 @@ export default function AssetSettingsPage() {
             className="w-full"
           >
             {isSavingDates ? '保存中...' : '基準日を保存'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Default Values Settings */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Repeat className="w-5 h-5" />
+            <span>デフォルト値設定</span>
+          </CardTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            次月以降の予測データに自動的に設定される値
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Fixed Income */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <Label className="text-sm font-medium">固定収入</Label>
+              <Button size="sm" variant="outline" onClick={addIncome}>
+                <Plus size={14} className="mr-1" />
+                追加
+              </Button>
+            </div>
+            {incomeRecords.length === 0 ? (
+              <p className="text-sm text-muted-foreground">固定収入が設定されていません</p>
+            ) : (
+              <div className="space-y-2">
+                {incomeRecords.map((income, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <Input
+                      placeholder="収入名"
+                      value={income.name}
+                      onChange={(e) => updateIncome(index, 'name', e.target.value)}
+                      className="flex-1"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="金額"
+                      value={income.amount}
+                      onChange={(e) => updateIncome(index, 'amount', parseInt(e.target.value) || 0)}
+                      className="w-32"
+                    />
+                    <Button size="icon" variant="ghost" onClick={() => removeIncome(index)}>
+                      <X size={16} />
+                    </Button>
+                  </div>
+                ))}
+                <p className="text-sm text-muted-foreground">
+                  合計: {formatCurrency(incomeRecords.reduce((sum, inc) => sum + inc.amount, 0))}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Default Credit Cards */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <Label className="text-sm font-medium">デフォルトクレジットカード</Label>
+              <Button size="sm" variant="outline" onClick={addCreditCard}>
+                <Plus size={14} className="mr-1" />
+                追加
+              </Button>
+            </div>
+            {defaultCreditCards.length === 0 ? (
+              <p className="text-sm text-muted-foreground">デフォルトカードが設定されていません</p>
+            ) : (
+              <div className="space-y-2">
+                {defaultCreditCards.map((card, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <Input
+                      placeholder="カード名"
+                      value={card.name}
+                      onChange={(e) => updateCreditCard(index, 'name', e.target.value)}
+                      className="flex-1"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="金額"
+                      value={card.amount}
+                      onChange={(e) => updateCreditCard(index, 'amount', parseInt(e.target.value) || 0)}
+                      className="w-32"
+                    />
+                    <Button size="icon" variant="ghost" onClick={() => removeCreditCard(index)}>
+                      <X size={16} />
+                    </Button>
+                  </div>
+                ))}
+                <p className="text-sm text-muted-foreground">
+                  合計: {formatCurrency(defaultCreditCards.reduce((sum, card) => sum + card.amount, 0))}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* NISA Monthly Contribution */}
+          <div>
+            <Label className="text-sm font-medium">NISA月次積立額</Label>
+            <div className="mt-2 p-3 rounded-lg bg-purple-50 border border-purple-200">
+              <p className="text-lg font-bold text-purple-900">
+                {formatCurrency(totalNisaContribution)} / 月
+              </p>
+              <p className="text-xs text-purple-700 mt-1">
+                ※ 詳細な口座管理は{' '}
+                <button
+                  onClick={() => router.push('/assets/nisa')}
+                  className="underline hover:text-purple-900"
+                >
+                  NISA管理ページ
+                </button>{' '}
+                へ
+              </p>
+            </div>
+          </div>
+
+          <Button
+            onClick={handleSaveDefaults}
+            disabled={isSavingDefaults || isLoadingDefaults}
+            className="w-full"
+          >
+            {isSavingDefaults ? '保存中...' : 'デフォルト値を保存'}
           </Button>
         </CardContent>
       </Card>
