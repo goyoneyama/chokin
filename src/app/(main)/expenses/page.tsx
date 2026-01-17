@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { Expense } from '@/types';
 import { formatCurrency, formatDate, formatDateShort } from '@/lib/formatters';
-import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { format, addMonths, subMonths, startOfMonth } from 'date-fns';
 
 export default function ExpensesPage() {
@@ -236,63 +236,105 @@ export default function ExpensesPage() {
 
       {/* 編集ダイアログ */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <form onSubmit={handleEdit}>
             <DialogHeader>
               <DialogTitle>支出を編集</DialogTitle>
               <DialogDescription>支出情報を更新します</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-amount">金額（円）</Label>
-                <Input
-                  id="edit-amount"
-                  type="number"
-                  value={editAmount}
-                  onChange={(e) => setEditAmount(e.target.value)}
-                  required
-                  min="1"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-category">カテゴリ</Label>
-                <select
-                  id="edit-category"
-                  value={editCategoryId}
-                  onChange={(e) => setEditCategoryId(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background"
-                  required
-                >
-                  <option value="">選択してください</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-date">日付</Label>
-                <Input
-                  id="edit-date"
-                  type="date"
-                  value={editDate}
-                  onChange={(e) => setEditDate(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-memo">メモ</Label>
-                <Input
-                  id="edit-memo"
-                  type="text"
-                  value={editMemo}
-                  onChange={(e) => setEditMemo(e.target.value)}
-                  placeholder="メモを入力"
-                />
-              </div>
+              {/* 金額入力 */}
+              <Card>
+                <CardContent className="pt-6">
+                  <Label htmlFor="edit-amount" className="text-sm font-medium mb-2 block">金額</Label>
+                  <div className="flex items-baseline space-x-2">
+                    <span className="text-2xl font-bold">¥</span>
+                    <Input
+                      id="edit-amount"
+                      type="number"
+                      value={editAmount}
+                      onChange={(e) => setEditAmount(e.target.value)}
+                      placeholder="0"
+                      className="text-2xl font-bold border-0 focus:ring-0 p-0 h-auto"
+                      required
+                      min="1"
+                      step="1"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* カテゴリ選択 */}
+              <Card>
+                <CardContent className="pt-6">
+                  <Label className="text-sm font-medium mb-3 block">カテゴリを選択</Label>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {categories.map((category) => {
+                      const isSelected = editCategoryId === category.id;
+                      return (
+                        <button
+                          key={category.id}
+                          type="button"
+                          onClick={() => setEditCategoryId(category.id)}
+                          className={`p-3 rounded-lg border-2 transition-all relative ${
+                            isSelected
+                              ? 'border-primary bg-primary/20 shadow-md'
+                              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {isSelected && (
+                            <div className="absolute top-1 right-1 bg-primary text-white rounded-full p-0.5">
+                              <Check size={14} strokeWidth={3} />
+                            </div>
+                          )}
+                          <div
+                            className="mx-auto w-10 h-10 rounded-full flex items-center justify-center mb-1"
+                            style={{ backgroundColor: category.color + (isSelected ? '50' : '30') }}
+                          >
+                            <CategoryIcon icon={category.icon} size={20} />
+                          </div>
+                          <div className={`text-xs font-medium text-center ${isSelected ? 'text-primary font-bold' : ''}`}>
+                            {category.name}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 日付選択 */}
+              <Card>
+                <CardContent className="pt-6">
+                  <Label htmlFor="edit-date" className="text-sm font-medium mb-2 block">日付</Label>
+                  <Input
+                    id="edit-date"
+                    type="date"
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                    required
+                    className="text-base"
+                  />
+                </CardContent>
+              </Card>
+
+              {/* メモ入力 */}
+              <Card>
+                <CardContent className="pt-6">
+                  <Label htmlFor="edit-memo" className="text-sm font-medium mb-2 block">メモ（任意）</Label>
+                  <Input
+                    id="edit-memo"
+                    type="text"
+                    value={editMemo}
+                    onChange={(e) => setEditMemo(e.target.value)}
+                    placeholder="例: ランチ代、コンビニ"
+                    maxLength={100}
+                    className="text-base"
+                  />
+                </CardContent>
+              </Card>
             </div>
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
@@ -300,10 +342,11 @@ export default function ExpensesPage() {
                   setIsEditOpen(false);
                   setSelectedExpense(null);
                 }}
+                className="w-full sm:w-auto"
               >
                 キャンセル
               </Button>
-              <Button type="submit">更新</Button>
+              <Button type="submit" className="w-full sm:w-auto">更新</Button>
             </DialogFooter>
           </form>
         </DialogContent>
