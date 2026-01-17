@@ -166,6 +166,7 @@ export default function EditBankAccountPage() {
                 type="number"
                 value={balance}
                 onChange={(e) => setBalance(e.target.value)}
+                placeholder="金額を入力"
                 min="0"
               />
             </div>

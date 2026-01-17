@@ -45,10 +45,10 @@ export default function AssetsPage() {
   } = useMonthlyAssetRecords();
 
   const [isEditing, setIsEditing] = useState(false);
-  const [bankBalance, setBankBalance] = useState('0');
-  const [monthlyIncome, setMonthlyIncome] = useState('0');
-  const [creditExpenses, setCreditExpenses] = useState('0');
-  const [nisaValue, setNisaValue] = useState('0');
+  const [bankBalance, setBankBalance] = useState('');
+  const [monthlyIncome, setMonthlyIncome] = useState('');
+  const [creditExpenses, setCreditExpenses] = useState('');
+  const [nisaValue, setNisaValue] = useState('');
   const [notes, setNotes] = useState('');
 
   // Detail states
@@ -80,10 +80,10 @@ export default function AssetsPage() {
       setCreditDetails(currentRecord.credit_details || []);
       setNisaDetails(currentRecord.nisa_details || []);
     } else {
-      setBankBalance('0');
-      setMonthlyIncome('0');
-      setCreditExpenses('0');
-      setNisaValue('0');
+      setBankBalance('');
+      setMonthlyIncome('');
+      setCreditExpenses('');
+      setNisaValue('');
       setNotes('');
       setBankDetails([]);
       setIncomeDetails([]);
@@ -285,7 +285,7 @@ export default function AssetsPage() {
                 value={bankBalance}
                 onChange={(e) => setBankBalance(e.target.value)}
                 className="mt-1 text-lg font-bold"
-                placeholder="0"
+                placeholder="金額を入力"
               />
             ) : (
               <div>
@@ -328,7 +328,7 @@ export default function AssetsPage() {
                 value={monthlyIncome}
                 onChange={(e) => setMonthlyIncome(e.target.value)}
                 className="mt-1 text-lg font-bold"
-                placeholder="0"
+                placeholder="金額を入力"
               />
             ) : (
               <div>
@@ -371,7 +371,7 @@ export default function AssetsPage() {
                 value={creditExpenses}
                 onChange={(e) => setCreditExpenses(e.target.value)}
                 className="mt-1 text-lg font-bold"
-                placeholder="0"
+                placeholder="金額を入力"
               />
             ) : (
               <div>
@@ -414,7 +414,7 @@ export default function AssetsPage() {
                 value={nisaValue}
                 onChange={(e) => setNisaValue(e.target.value)}
                 className="mt-1 text-lg font-bold"
-                placeholder="0"
+                placeholder="金額を入力"
               />
             ) : (
               <div>

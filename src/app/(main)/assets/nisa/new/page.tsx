@@ -104,7 +104,7 @@ export default function NewNisaAccountPage() {
                 type="number"
                 value={currentValue}
                 onChange={(e) => setCurrentValue(e.target.value)}
-                placeholder="0"
+                placeholder="金額を入力"
                 min="0"
               />
             </div>
@@ -116,7 +116,7 @@ export default function NewNisaAccountPage() {
                 type="number"
                 value={totalInvested}
                 onChange={(e) => setTotalInvested(e.target.value)}
-                placeholder="0"
+                placeholder="金額を入力"
                 min="0"
               />
             </div>
@@ -128,7 +128,7 @@ export default function NewNisaAccountPage() {
                 type="number"
                 value={monthlyContribution}
                 onChange={(e) => setMonthlyContribution(e.target.value)}
-                placeholder="0"
+                placeholder="金額を入力"
                 min="0"
               />
             </div>

@@ -39,7 +39,7 @@ export default function CategoriesPage() {
   const resetForm = () => {
     setFormData({
       name: '',
-      budget: 0,
+      budget: '' as any,
       icon: 'receipt',
       color: '#6B7280',
       is_fixed: false,
@@ -209,9 +209,10 @@ export default function CategoriesPage() {
                 <Input
                   id="budget"
                   type="number"
-                  value={formData.budget}
+                  placeholder="予算を入力"
+                  value={formData.budget || ''}
                   onChange={(e) =>
-                    setFormData({ ...formData, budget: parseInt(e.target.value) || 0 })
+                    setFormData({ ...formData, budget: e.target.value === '' ? '' as any : parseInt(e.target.value) || 0 })
                   }
                   required
                   min="0"
@@ -311,9 +312,10 @@ export default function CategoriesPage() {
                 <Input
                   id="edit-budget"
                   type="number"
-                  value={formData.budget}
+                  placeholder="予算を入力"
+                  value={formData.budget || ''}
                   onChange={(e) =>
-                    setFormData({ ...formData, budget: parseInt(e.target.value) || 0 })
+                    setFormData({ ...formData, budget: e.target.value === '' ? '' as any : parseInt(e.target.value) || 0 })
                   }
                   required
                   min="0"

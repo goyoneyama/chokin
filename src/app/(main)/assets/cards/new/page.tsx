@@ -67,11 +67,11 @@ export default function NewCreditCardPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="credit-limit">限度額（円）</Label>
-              <Input id="credit-limit" type="number" value={creditLimit} onChange={(e) => setCreditLimit(e.target.value)} placeholder="0" min="0" />
+              <Input id="credit-limit" type="number" value={creditLimit} onChange={(e) => setCreditLimit(e.target.value)} placeholder="金額を入力" min="0" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="current-balance">現在の利用残高（円）</Label>
-              <Input id="current-balance" type="number" value={currentBalance} onChange={(e) => setCurrentBalance(e.target.value)} placeholder="0" min="0" />
+              <Input id="current-balance" type="number" value={currentBalance} onChange={(e) => setCurrentBalance(e.target.value)} placeholder="金額を入力" min="0" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="payment-due-day">支払日（毎月何日）</Label>

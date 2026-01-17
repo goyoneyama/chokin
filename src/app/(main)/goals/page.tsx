@@ -191,7 +191,7 @@ export default function GoalsPage() {
                     <Input
                       id="target"
                       type="number"
-                      placeholder="3000000"
+                      placeholder="目標金額を入力"
                       value={targetAmount}
                       onChange={(e) => setTargetAmount(e.target.value)}
                       className="text-lg"
@@ -214,7 +214,7 @@ export default function GoalsPage() {
                       <Input
                         id="nisa-monthly"
                         type="number"
-                        placeholder="30000"
+                        placeholder="積立額を入力"
                         value={nisaMonthly}
                         onChange={(e) => setNisaMonthly(e.target.value)}
                       />
@@ -267,7 +267,7 @@ export default function GoalsPage() {
                       <Input
                         id="bonus-amount"
                         type="number"
-                        placeholder="100000"
+                        placeholder="金額を入力"
                         value={bonusPerYear}
                         onChange={(e) => setBonusPerYear(e.target.value)}
                       />

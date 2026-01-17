@@ -128,15 +128,15 @@ export default function EditNisaAccountPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="current-value">現在の評価額（円）</Label>
-              <Input id="current-value" type="number" value={currentValue} onChange={(e) => setCurrentValue(e.target.value)} min="0" />
+              <Input id="current-value" type="number" value={currentValue} onChange={(e) => setCurrentValue(e.target.value)} placeholder="金額を入力" min="0" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="total-invested">投資元本（円）</Label>
-              <Input id="total-invested" type="number" value={totalInvested} onChange={(e) => setTotalInvested(e.target.value)} min="0" />
+              <Input id="total-invested" type="number" value={totalInvested} onChange={(e) => setTotalInvested(e.target.value)} placeholder="金額を入力" min="0" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="monthly-contribution">月額積立額（円）</Label>
-              <Input id="monthly-contribution" type="number" value={monthlyContribution} onChange={(e) => setMonthlyContribution(e.target.value)} min="0" />
+              <Input id="monthly-contribution" type="number" value={monthlyContribution} onChange={(e) => setMonthlyContribution(e.target.value)} placeholder="金額を入力" min="0" />
             </div>
           </CardContent>
         </Card>

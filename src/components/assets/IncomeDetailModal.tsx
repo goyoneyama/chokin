@@ -33,12 +33,12 @@ export function IncomeDetailModal({
 
   useEffect(() => {
     if (open) {
-      setIncomeDetails(details.length > 0 ? [...details] : [{ name: '', amount: 0 }]);
+      setIncomeDetails(details.length > 0 ? [...details] : [{ name: '', amount: '' as any }]);
     }
   }, [open, details]);
 
   const addIncome = () => {
-    setIncomeDetails([...incomeDetails, { name: '', amount: 0 }]);
+    setIncomeDetails([...incomeDetails, { name: '', amount: '' as any }]);
   };
 
   const removeIncome = (index: number) => {
@@ -92,9 +92,9 @@ export function IncomeDetailModal({
                       <Input
                         id={`income-amount-${index}`}
                         type="number"
-                        value={income.amount}
-                        onChange={(e) => updateIncome(index, 'amount', parseInt(e.target.value) || 0)}
-                        placeholder="0"
+                        value={income.amount || ''}
+                        onChange={(e) => updateIncome(index, 'amount', e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
+                        placeholder="金額を入力"
                         className="mt-1"
                       />
                     </div>

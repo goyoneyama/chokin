@@ -33,12 +33,12 @@ export function CreditDetailModal({
 
   useEffect(() => {
     if (open) {
-      setCreditDetails(details.length > 0 ? [...details] : [{ name: '', amount: 0 }]);
+      setCreditDetails(details.length > 0 ? [...details] : [{ name: '', amount: '' as any }]);
     }
   }, [open, details]);
 
   const addCredit = () => {
-    setCreditDetails([...creditDetails, { name: '', amount: 0 }]);
+    setCreditDetails([...creditDetails, { name: '', amount: '' as any }]);
   };
 
   const removeCredit = (index: number) => {
@@ -92,9 +92,9 @@ export function CreditDetailModal({
                       <Input
                         id={`credit-amount-${index}`}
                         type="number"
-                        value={credit.amount}
-                        onChange={(e) => updateCredit(index, 'amount', parseInt(e.target.value) || 0)}
-                        placeholder="0"
+                        value={credit.amount || ''}
+                        onChange={(e) => updateCredit(index, 'amount', e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
+                        placeholder="金額を入力"
                         className="mt-1"
                       />
                     </div>

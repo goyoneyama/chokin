@@ -64,7 +64,7 @@ export default function NewIncomeRecordPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="amount">金額（円）</Label>
-              <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" min="0" required />
+              <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="金額を入力" min="0" required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="frequency">頻度</Label>

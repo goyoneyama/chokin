@@ -254,7 +254,7 @@ export default function ExpensesPage() {
                       type="number"
                       value={editAmount}
                       onChange={(e) => setEditAmount(e.target.value)}
-                      placeholder="0"
+                      placeholder="金額を入力"
                       className="text-2xl font-bold border-0 focus:ring-0 p-0 h-auto"
                       required
                       min="1"

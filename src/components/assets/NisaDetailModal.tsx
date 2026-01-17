@@ -33,12 +33,12 @@ export function NisaDetailModal({
 
   useEffect(() => {
     if (open) {
-      setNisaDetails(details.length > 0 ? [...details] : [{ name: '', value: 0 }]);
+      setNisaDetails(details.length > 0 ? [...details] : [{ name: '', value: '' as any }]);
     }
   }, [open, details]);
 
   const addNisa = () => {
-    setNisaDetails([...nisaDetails, { name: '', value: 0 }]);
+    setNisaDetails([...nisaDetails, { name: '', value: '' as any }]);
   };
 
   const removeNisa = (index: number) => {
@@ -92,9 +92,9 @@ export function NisaDetailModal({
                       <Input
                         id={`nisa-value-${index}`}
                         type="number"
-                        value={nisa.value}
-                        onChange={(e) => updateNisa(index, 'value', parseInt(e.target.value) || 0)}
-                        placeholder="0"
+                        value={nisa.value || ''}
+                        onChange={(e) => updateNisa(index, 'value', e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
+                        placeholder="金額を入力"
                         className="mt-1"
                       />
                     </div>

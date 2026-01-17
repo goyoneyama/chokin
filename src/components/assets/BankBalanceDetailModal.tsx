@@ -33,12 +33,12 @@ export function BankBalanceDetailModal({
 
   useEffect(() => {
     if (open) {
-      setBankDetails(details.length > 0 ? [...details] : [{ name: '', balance: 0 }]);
+      setBankDetails(details.length > 0 ? [...details] : [{ name: '', balance: '' as any }]);
     }
   }, [open, details]);
 
   const addBank = () => {
-    setBankDetails([...bankDetails, { name: '', balance: 0 }]);
+    setBankDetails([...bankDetails, { name: '', balance: '' as any }]);
   };
 
   const removeBank = (index: number) => {
@@ -92,9 +92,9 @@ export function BankBalanceDetailModal({
                       <Input
                         id={`bank-balance-${index}`}
                         type="number"
-                        value={bank.balance}
-                        onChange={(e) => updateBank(index, 'balance', parseInt(e.target.value) || 0)}
-                        placeholder="0"
+                        value={bank.balance || ''}
+                        onChange={(e) => updateBank(index, 'balance', e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
+                        placeholder="金額を入力"
                         className="mt-1"
                       />
                     </div>

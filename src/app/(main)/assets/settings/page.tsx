@@ -155,7 +155,7 @@ export default function AssetSettingsPage() {
       user_id: user!.id,
       name: '',
       income_type: 'salary',
-      amount: 0,
+      amount: '' as any,
       frequency: 'monthly',
       is_active: true,
       created_at: '',
@@ -174,7 +174,7 @@ export default function AssetSettingsPage() {
   };
 
   const addCreditCard = () => {
-    setDefaultCreditCards([...defaultCreditCards, { name: '', amount: 0 }]);
+    setDefaultCreditCards([...defaultCreditCards, { name: '', amount: '' as any }]);
   };
 
   const updateCreditCard = (index: number, field: 'name' | 'amount', value: string | number) => {
@@ -479,9 +479,9 @@ export default function AssetSettingsPage() {
                     />
                     <Input
                       type="number"
-                      placeholder="金額"
-                      value={income.amount}
-                      onChange={(e) => updateIncome(index, 'amount', parseInt(e.target.value) || 0)}
+                      placeholder="金額を入力"
+                      value={income.amount || ''}
+                      onChange={(e) => updateIncome(index, 'amount', e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
                       className="w-32"
                     />
                     <Button size="icon" variant="ghost" onClick={() => removeIncome(index)}>
@@ -519,9 +519,9 @@ export default function AssetSettingsPage() {
                     />
                     <Input
                       type="number"
-                      placeholder="金額"
-                      value={card.amount}
-                      onChange={(e) => updateCreditCard(index, 'amount', parseInt(e.target.value) || 0)}
+                      placeholder="金額を入力"
+                      value={card.amount || ''}
+                      onChange={(e) => updateCreditCard(index, 'amount', e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
                       className="w-32"
                     />
                     <Button size="icon" variant="ghost" onClick={() => removeCreditCard(index)}>

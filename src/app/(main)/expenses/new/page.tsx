@@ -89,7 +89,7 @@ export default function NewExpensePage() {
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="0"
+                placeholder="金額を入力"
                 className="text-3xl font-bold border-0 focus:ring-0 p-0 h-auto"
                 required
                 min="1"

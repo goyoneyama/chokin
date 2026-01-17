@@ -150,11 +150,12 @@ export default function BudgetPage() {
                 <Input
                   id={`budget-${category.id}`}
                   type="number"
-                  value={budgets[category.id] || 0}
+                  placeholder="予算を入力"
+                  value={budgets[category.id] || ''}
                   onChange={(e) => {
                     setBudgets({
                       ...budgets,
-                      [category.id]: parseInt(e.target.value) || 0,
+                      [category.id]: e.target.value === '' ? 0 : parseInt(e.target.value) || 0,
                     });
                     setHasChanges(true);
                   }}

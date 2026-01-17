@@ -96,7 +96,7 @@ export default function EditIncomeRecordPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2"><Label htmlFor="name">名称</Label><Input id="name" value={name} onChange={(e) => setName(e.target.value)} required /></div>
             <div className="space-y-2"><Label htmlFor="income-type">種類</Label><select id="income-type" value={incomeType} onChange={(e) => setIncomeType(e.target.value as IncomeType)} className="w-full h-10 px-3 rounded-md border border-input bg-white">{Object.entries(INCOME_TYPE_LABELS).map(([value, label]) => (<option key={value} value={value}>{label}</option>))}</select></div>
-            <div className="space-y-2"><Label htmlFor="amount">金額（円）</Label><Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} min="0" required /></div>
+            <div className="space-y-2"><Label htmlFor="amount">金額（円）</Label><Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="金額を入力" min="0" required /></div>
             <div className="space-y-2"><Label htmlFor="frequency">頻度</Label><select id="frequency" value={frequency} onChange={(e) => setFrequency(e.target.value as IncomeFrequency)} className="w-full h-10 px-3 rounded-md border border-input bg-white">{Object.entries(INCOME_FREQUENCY_LABELS).map(([value, label]) => (<option key={value} value={value}>{label}</option>))}</select></div>
           </CardContent>
         </Card>
