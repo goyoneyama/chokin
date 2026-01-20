@@ -229,5 +229,6 @@ export function useMonthlyAssetRecords(targetMonth?: Date) {
     confirmRecord,
     autoGenerateNextMonth,
     refresh: loadCurrentRecord,
+    fetchRecord,
   };
 }

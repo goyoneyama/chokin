@@ -8,6 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { formatCurrency } from '@/lib/formatters';
 import { BankDetail, IncomeDetail, CreditDetail, NisaDetail } from '@/types/assets';
 import { BankBalanceDetailModal } from '@/components/assets/BankBalanceDetailModal';
@@ -25,9 +34,10 @@ import {
   Save,
   ListTree,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, addMonths } from 'date-fns';
 import { toast } from 'sonner';
 import { ja } from 'date-fns/locale';
+import { supabase } from '@/lib/supabase';
 
 export default function AssetsPage() {
   const router = useRouter();
@@ -42,6 +52,7 @@ export default function AssetsPage() {
     goToNextMonth,
     goToToday,
     confirmRecord,
+    fetchRecord,
   } = useMonthlyAssetRecords();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -63,12 +74,17 @@ export default function AssetsPage() {
   const [creditModalOpen, setCreditModalOpen] = useState(false);
   const [nisaModalOpen, setNisaModalOpen] = useState(false);
 
+  // Apply to next month states
+  const [applyToNextMonth, setApplyToNextMonth] = useState(false);
+  const [nextMonthExists, setNextMonthExists] = useState(false);
+  const [showApplyConfirm, setShowApplyConfirm] = useState(false);
+
   const salaryDay = user?.salary_day || 25;
   const cardPaymentDay = user?.card_payment_day || 27;
   const bankBalanceDay = salaryDay - 1; // 給料日の前日
 
   // Load data into form when editing
-  const startEdit = () => {
+  const startEdit = async () => {
     if (currentRecord) {
       setBankBalance(currentRecord.bank_balance.toString());
       setMonthlyIncome(currentRecord.monthly_income.toString());
@@ -90,6 +106,13 @@ export default function AssetsPage() {
       setCreditDetails([]);
       setNisaDetails([]);
     }
+
+    // Check if next month record exists
+    const nextMonth = format(addMonths(currentMonth, 1), 'yyyy-MM');
+    const nextRecord = await fetchRecord(nextMonth);
+    setNextMonthExists(!!nextRecord);
+    setApplyToNextMonth(false); // デフォルトはOFF
+
     setIsEditing(true);
   };
 
@@ -121,7 +144,58 @@ export default function AssetsPage() {
     setNisaValue(total.toString());
   };
 
+  // Apply current record data to next month
+  const applyToNextMonthRecord = async (nextMonthYearMonth: string): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      // 次月の前月（つまり現在編集中の月）のデータを取得
+      const currentMonthData = await fetchRecord(yearMonth);
+      if (!currentMonthData) return false;
+
+      // 次月のデータを準備
+      const nextMonthData = {
+        bank_balance: currentMonthData.calculated_balance, // 計算後の残高を引き継ぎ
+        monthly_income: parseInt(monthlyIncome) || 0,
+        credit_expenses: parseInt(creditExpenses) || 0,
+        nisa_value: parseInt(nisaValue) || 0,
+        notes: notes || undefined,
+        // 詳細データは合計額のみコピー（詳細はクリア）
+        income_details: undefined,
+        credit_details: undefined,
+        nisa_details: undefined,
+        bank_details: undefined,
+      };
+
+      // 次月のデータを保存
+      const { error } = await supabase
+        .from('monthly_asset_records')
+        .upsert({
+          user_id: user.id,
+          year_month: nextMonthYearMonth,
+          ...nextMonthData,
+          is_confirmed: false, // 予測データとして保存
+        }, { onConflict: 'user_id,year_month' });
+
+      return !error;
+    } catch (err) {
+      console.error('Error applying to next month:', err);
+      return false;
+    }
+  };
+
   const saveRecord = async () => {
+    // 次月適用がONで、次月が既に存在する場合は確認ダイアログを表示
+    if (applyToNextMonth && nextMonthExists) {
+      setShowApplyConfirm(true);
+      return;
+    }
+
+    // 保存処理を実行
+    await executeSave();
+  };
+
+  const executeSave = async () => {
     const success = await upsertRecord(
       yearMonth,
       {
@@ -138,12 +212,28 @@ export default function AssetsPage() {
       false
     );
 
-    if (success) {
-      toast.success('保存しました');
-      setIsEditing(false);
-    } else {
+    if (!success) {
       toast.error('保存に失敗しました');
+      return;
     }
+
+    // 次月にも適用する場合
+    if (applyToNextMonth) {
+      const nextMonth = format(addMonths(currentMonth, 1), 'yyyy-MM');
+      const nextMonthSuccess = await applyToNextMonthRecord(nextMonth);
+
+      if (nextMonthSuccess) {
+        toast.success(`保存しました（${format(addMonths(currentMonth, 1), 'M月', { locale: ja })}にも適用）`);
+      } else {
+        toast.success('現在の月は保存されましたが、次月への適用に失敗しました');
+      }
+    } else {
+      toast.success('保存しました');
+    }
+
+    setIsEditing(false);
+    setApplyToNextMonth(false);
+    setShowApplyConfirm(false);
   };
 
   const handleConfirm = async () => {
@@ -230,22 +320,50 @@ export default function AssetsPage() {
 
       {/* Main Data Card */}
       <Card className="mb-6">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{format(currentMonth, 'M月', { locale: ja })}の資産状況</CardTitle>
-          {!isEditing ? (
-            <Button size="sm" variant="outline" onClick={startEdit}>
-              <Edit size={14} className="mr-1" />
-              編集
-            </Button>
-          ) : (
-            <div className="flex space-x-2">
-              <Button size="sm" variant="outline" onClick={cancelEdit}>
-                キャンセル
+        <CardHeader>
+          <div className="flex flex-row items-center justify-between mb-2">
+            <CardTitle>{format(currentMonth, 'M月', { locale: ja })}の資産状況</CardTitle>
+            {!isEditing ? (
+              <Button size="sm" variant="outline" onClick={startEdit}>
+                <Edit size={14} className="mr-1" />
+                編集
               </Button>
-              <Button size="sm" onClick={saveRecord}>
-                <Save size={14} className="mr-1" />
-                保存
-              </Button>
+            ) : (
+              <div className="flex space-x-2">
+                <Button size="sm" variant="outline" onClick={cancelEdit}>
+                  キャンセル
+                </Button>
+                <Button size="sm" onClick={saveRecord}>
+                  <Save size={14} className="mr-1" />
+                  保存
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* 次月適用オプション */}
+          {isEditing && (
+            <div className="space-y-2 mt-3">
+              <div className="flex items-center space-x-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <Checkbox
+                  id="apply-to-next-month"
+                  checked={applyToNextMonth}
+                  onCheckedChange={(checked) => setApplyToNextMonth(checked as boolean)}
+                />
+                <Label
+                  htmlFor="apply-to-next-month"
+                  className="text-sm font-medium text-blue-900 cursor-pointer"
+                >
+                  この内容を次月（{format(addMonths(currentMonth, 1), 'M月', { locale: ja })}）にも適用する
+                </Label>
+              </div>
+
+              {/* 警告メッセージ（次月が既に存在する場合） */}
+              {applyToNextMonth && nextMonthExists && (
+                <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded border border-orange-200">
+                  ⚠️ 次月のデータは上書きされます
+                </div>
+              )}
             </div>
           )}
         </CardHeader>
@@ -497,6 +615,38 @@ export default function AssetsPage() {
         details={nisaDetails}
         onSave={handleNisaDetailSave}
       />
+
+      {/* Apply to Next Month Confirmation Dialog */}
+      <Dialog open={showApplyConfirm} onOpenChange={setShowApplyConfirm}>
+        <DialogContent className="bg-white">
+          <DialogHeader>
+            <DialogTitle>次月のデータを上書きしますか？</DialogTitle>
+            <DialogDescription>
+              {format(addMonths(currentMonth, 1), 'yyyy年M月', { locale: ja })}のデータは既に存在します。
+              <br />
+              <br />
+              <strong>上書きされる内容:</strong>
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>今月の収入: {formatCurrency(parseInt(monthlyIncome) || 0)}</li>
+                <li>今月の支出: {formatCurrency(parseInt(creditExpenses) || 0)}</li>
+                <li>NISA評価額: {formatCurrency(parseInt(nisaValue) || 0)}</li>
+              </ul>
+              <br />
+              <p className="text-sm text-muted-foreground">
+                ※ 詳細データ（収入明細・支出明細など）はクリアされ、合計額のみが適用されます
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowApplyConfirm(false)}>
+              キャンセル
+            </Button>
+            <Button onClick={executeSave}>
+              上書きする
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
