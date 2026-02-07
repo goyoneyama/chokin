@@ -185,6 +185,11 @@ export function useMonthlyAssetRecords(targetMonth?: Date) {
     setCurrentMonth(nextMonth);
   };
 
+  // Go to specific month
+  const goToMonth = (month: Date) => {
+    setCurrentMonth(month);
+  };
+
   // Go to today's month
   const goToToday = () => {
     setCurrentMonth(new Date());
@@ -225,6 +230,7 @@ export function useMonthlyAssetRecords(targetMonth?: Date) {
     upsertRecord,
     goToPreviousMonth,
     goToNextMonth,
+    goToMonth,
     goToToday,
     confirmRecord,
     autoGenerateNextMonth,

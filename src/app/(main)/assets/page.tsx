@@ -23,6 +23,8 @@ import { BankBalanceDetailModal } from '@/components/assets/BankBalanceDetailMod
 import { IncomeDetailModal } from '@/components/assets/IncomeDetailModal';
 import { CreditDetailModal } from '@/components/assets/CreditDetailModal';
 import { NisaDetailModal } from '@/components/assets/NisaDetailModal';
+import { AssetTableView } from '@/components/assets/AssetTableView';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   ArrowLeft,
   Settings,
@@ -50,11 +52,13 @@ export default function AssetsPage() {
     upsertRecord,
     goToPreviousMonth,
     goToNextMonth,
+    goToMonth,
     goToToday,
     confirmRecord,
     fetchRecord,
   } = useMonthlyAssetRecords();
 
+  const [viewMode, setViewMode] = useState('card');
   const [isEditing, setIsEditing] = useState(false);
   const [bankBalance, setBankBalance] = useState('');
   const [monthlyIncome, setMonthlyIncome] = useState('');
@@ -78,6 +82,12 @@ export default function AssetsPage() {
   const [applyToNextMonth, setApplyToNextMonth] = useState(false);
   const [nextMonthExists, setNextMonthExists] = useState(false);
   const [showApplyConfirm, setShowApplyConfirm] = useState(false);
+
+  // テーブル表示からカード表示の特定月に遷移
+  const handleNavigateToMonth = (yearMonthStr: string) => {
+    goToMonth(new Date(yearMonthStr + '-01'));
+    setViewMode('card');
+  };
 
   const salaryDay = user?.salary_day || 25;
   const cardPaymentDay = user?.card_payment_day || 27;
@@ -149,15 +159,17 @@ export default function AssetsPage() {
     if (!user) return false;
 
     try {
-      // 次月の前月（つまり現在編集中の月）のデータを取得
-      const currentMonthData = await fetchRecord(yearMonth);
-      if (!currentMonthData) return false;
+      // 編集中の資産合計を計算（当月27日時点の資産合計）
+      const currentBankBalance = parseInt(bankBalance) || 0;
+      const currentMonthlyIncome = parseInt(monthlyIncome) || 0;
+      const currentCreditExpenses = parseInt(creditExpenses) || 0;
+      const calculatedBalance = currentBankBalance + currentMonthlyIncome - currentCreditExpenses;
 
       // 次月のデータを準備
       const nextMonthData = {
-        bank_balance: currentMonthData.calculated_balance, // 計算後の残高を引き継ぎ
-        monthly_income: parseInt(monthlyIncome) || 0,
-        credit_expenses: parseInt(creditExpenses) || 0,
+        bank_balance: calculatedBalance, // 当月の資産合計を次月の口座残高に反映
+        monthly_income: currentMonthlyIncome,
+        credit_expenses: currentCreditExpenses,
         nisa_value: parseInt(nisaValue) || 0,
         notes: notes || undefined,
         // 詳細データは合計額のみコピー（詳細はクリア）
@@ -269,9 +281,9 @@ export default function AssetsPage() {
   const displayNisa = isEditing ? (parseInt(nisaValue) || 0) : (currentRecord?.nisa_value || 0);
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl pb-24">
+    <div className={`container mx-auto p-4 pb-24 ${viewMode === 'table' ? 'max-w-6xl' : 'max-w-4xl'}`}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
           <Button variant="ghost" size="sm" onClick={() => router.push('/settings')}>
             <ArrowLeft size={20} />
@@ -282,6 +294,15 @@ export default function AssetsPage() {
           <Settings size={20} />
         </Button>
       </div>
+
+      {/* View Mode Tabs */}
+      <Tabs value={viewMode} onValueChange={setViewMode}>
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="card">カード</TabsTrigger>
+          <TabsTrigger value="table">テーブル</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="card">
 
       {/* Month Selector */}
       <Card className="mb-6">
@@ -589,6 +610,13 @@ export default function AssetsPage() {
           </p>
         </CardContent>
       </Card>
+
+        </TabsContent>
+
+        <TabsContent value="table">
+          <AssetTableView onNavigateToMonth={handleNavigateToMonth} />
+        </TabsContent>
+      </Tabs>
 
       {/* Detail Modals */}
       <BankBalanceDetailModal
