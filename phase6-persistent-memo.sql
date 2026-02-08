@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN IF NOT EXISTS persistent_memo JSONB DEFAULT '[]';

@@ -8,6 +8,12 @@ export interface DefaultCreditCard {
   amount: number;
 }
 
+export interface PersistentMemoItem {
+  id: string;
+  amount: number;
+  memo: string;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -17,6 +23,7 @@ export interface User {
   salary_day: number;
   card_payment_day: number;
   default_credit_cards: DefaultCreditCard[] | null;
+  persistent_memo: PersistentMemoItem[] | null;
   created_at: string;
   updated_at: string;
 }

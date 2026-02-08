@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { formatCurrency } from '@/lib/formatters';
+import { PersistentMemoItem } from '@/types';
 import { BankDetail, IncomeDetail, CreditDetail, NisaDetail } from '@/types/assets';
 import { BankBalanceDetailModal } from '@/components/assets/BankBalanceDetailModal';
 import { IncomeDetailModal } from '@/components/assets/IncomeDetailModal';
@@ -35,6 +36,11 @@ import {
   Check,
   Save,
   ListTree,
+  StickyNote,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import { format, addMonths } from 'date-fns';
 import { toast } from 'sonner';
@@ -77,6 +83,49 @@ export default function AssetsPage() {
   const [incomeModalOpen, setIncomeModalOpen] = useState(false);
   const [creditModalOpen, setCreditModalOpen] = useState(false);
   const [nisaModalOpen, setNisaModalOpen] = useState(false);
+
+  // Persistent memo states
+  const rawMemo = user?.persistent_memo;
+  const memoItems: PersistentMemoItem[] = Array.isArray(rawMemo)
+    ? rawMemo
+    : typeof rawMemo === 'string' && rawMemo
+      ? (() => { try { const p = JSON.parse(rawMemo); return Array.isArray(p) ? p : []; } catch { return []; } })()
+      : [];
+  const [memoExpanded, setMemoExpanded] = useState(() => memoItems.length > 0);
+  const [newMemoAmount, setNewMemoAmount] = useState('');
+  const [newMemoText, setNewMemoText] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  const saveMemoItems = async (items: PersistentMemoItem[]) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from('users')
+      .update({ persistent_memo: items })
+      .eq('id', user.id);
+    if (error) {
+      toast.error('メモの保存に失敗しました');
+      return;
+    }
+    useAuthStore.getState().setUser({ ...user, persistent_memo: items });
+  };
+
+  const addMemoItem = async () => {
+    if (!newMemoText.trim()) return;
+    const newItem: PersistentMemoItem = {
+      id: crypto.randomUUID(),
+      amount: parseInt(newMemoAmount) || 0,
+      memo: newMemoText.trim(),
+    };
+    await saveMemoItems([...memoItems, newItem]);
+    setNewMemoAmount('');
+    setNewMemoText('');
+    setShowAddForm(false);
+    toast.success('メモを追加しました');
+  };
+
+  const removeMemoItem = async (id: string) => {
+    await saveMemoItems(memoItems.filter((item) => item.id !== id));
+  };
 
   // Apply to next month states
   const [applyToNextMonth, setApplyToNextMonth] = useState(false);
@@ -294,6 +343,100 @@ export default function AssetsPage() {
           <Settings size={20} />
         </Button>
       </div>
+
+      {/* Persistent Memo Card */}
+      <Card className="mb-4">
+        <CardContent className="p-0">
+          {/* Header */}
+          <button
+            type="button"
+            className="w-full flex items-center justify-between p-3 text-left hover:bg-muted/50 rounded-lg transition-colors"
+            onClick={() => setMemoExpanded(!memoExpanded)}
+          >
+            <div className="flex items-center space-x-2">
+              <StickyNote size={16} className="text-amber-600 shrink-0" />
+              <span className="text-sm font-medium">メモ</span>
+              {memoItems.length > 0 && (
+                <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                  {memoItems.length}
+                </span>
+              )}
+            </div>
+            {memoExpanded ? <ChevronUp size={16} className="text-muted-foreground" /> : <ChevronDown size={16} className="text-muted-foreground" />}
+          </button>
+
+          {/* Expanded */}
+          {memoExpanded && (
+            <div className="px-3 pb-3 space-y-2">
+              {/* Memo items list */}
+              {memoItems.length > 0 ? (
+                <div className="space-y-1">
+                  {memoItems.map((item) => (
+                    <div key={item.id} className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 group">
+                      <Checkbox
+                        onCheckedChange={() => removeMemoItem(item.id)}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm">{item.memo}</span>
+                      </div>
+                      {item.amount > 0 && (
+                        <span className="text-sm font-medium text-amber-700 shrink-0">
+                          {formatCurrency(item.amount)}
+                        </span>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                        onClick={() => removeMemoItem(item.id)}
+                      >
+                        <Trash2 size={14} className="text-muted-foreground" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground/60 px-2">メモはありません</p>
+              )}
+
+              {/* Add form */}
+              {showAddForm ? (
+                <div className="space-y-2 pt-2 border-t">
+                  <Input
+                    type="text"
+                    value={newMemoText}
+                    onChange={(e) => setNewMemoText(e.target.value)}
+                    placeholder="メモ（例：Aさんにお金を貸した）"
+                    autoFocus
+                    onKeyDown={(e) => e.key === 'Enter' && addMemoItem()}
+                  />
+                  <Input
+                    type="number"
+                    value={newMemoAmount}
+                    onChange={(e) => setNewMemoAmount(e.target.value)}
+                    placeholder="金額（任意）"
+                    onKeyDown={(e) => e.key === 'Enter' && addMemoItem()}
+                  />
+                  <div className="flex justify-end space-x-2">
+                    <Button size="sm" variant="outline" onClick={() => { setShowAddForm(false); setNewMemoText(''); setNewMemoAmount(''); }}>
+                      キャンセル
+                    </Button>
+                    <Button size="sm" onClick={addMemoItem} disabled={!newMemoText.trim()}>
+                      <Plus size={14} className="mr-1" />
+                      追加
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button size="sm" variant="ghost" onClick={() => setShowAddForm(true)} className="text-xs h-7 w-full">
+                  <Plus size={14} className="mr-1" />
+                  追加
+                </Button>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* View Mode Tabs */}
       <Tabs value={viewMode} onValueChange={setViewMode}>
