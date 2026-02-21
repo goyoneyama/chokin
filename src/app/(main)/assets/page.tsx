@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMonthlyAssetRecords } from '@/hooks/useMonthlyAssetRecords';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -62,9 +62,17 @@ export default function AssetsPage() {
     goToToday,
     confirmRecord,
     fetchRecord,
+    refresh,
   } = useMonthlyAssetRecords();
 
   const [viewMode, setViewMode] = useState('card');
+
+  // カードビューに切り替えたときにデータを再取得
+  useEffect(() => {
+    if (viewMode === 'card') {
+      refresh();
+    }
+  }, [viewMode]);
   const [isEditing, setIsEditing] = useState(false);
   const [bankBalance, setBankBalance] = useState('');
   const [monthlyIncome, setMonthlyIncome] = useState('');
@@ -757,7 +765,7 @@ export default function AssetsPage() {
         </TabsContent>
 
         <TabsContent value="table">
-          <AssetTableView onNavigateToMonth={handleNavigateToMonth} />
+          <AssetTableView onNavigateToMonth={handleNavigateToMonth} active={viewMode === 'table'} />
         </TabsContent>
       </Tabs>
 

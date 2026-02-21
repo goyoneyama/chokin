@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 
 interface AssetTableViewProps {
   onNavigateToMonth: (yearMonth: string) => void;
+  active?: boolean;
 }
 
 type EditCell = {
@@ -29,7 +30,7 @@ type EditDetail = {
   value: string;
 };
 
-export function AssetTableView({ onNavigateToMonth }: AssetTableViewProps) {
+export function AssetTableView({ onNavigateToMonth, active }: AssetTableViewProps) {
   const { user } = useAuthStore();
   const [records, setRecords] = useState<MonthlyAssetRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +43,13 @@ export function AssetTableView({ onNavigateToMonth }: AssetTableViewProps) {
   useEffect(() => {
     loadRecords();
   }, [user]);
+
+  // タブが表示されたときにデータを再取得
+  useEffect(() => {
+    if (active && user) {
+      loadRecords();
+    }
+  }, [active]);
 
   const loadRecords = async () => {
     if (!user) {
