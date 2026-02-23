@@ -82,7 +82,9 @@ export function AssetTableView({ onNavigateToMonth, active }: AssetTableViewProp
     if (index === 0) return null;
     const prev = displayedRecords[index - 1];
     if (!prev) return null;
-    return current.calculated_balance - prev.calculated_balance;
+    const currentTotal = current.bank_balance + current.nisa_value;
+    const prevTotal = prev.bank_balance + prev.nisa_value;
+    return currentTotal - prevTotal;
   };
 
   // 今月を見つける（昇順のrecords配列内で）
@@ -173,13 +175,11 @@ export function AssetTableView({ onNavigateToMonth, active }: AssetTableViewProp
         setRecords(records.map(r => {
           if (r.id === editingCell.recordId) {
             const updatedRecord = { ...r, [editingCell.field]: newValue };
-            // Recalculate balance
             const bank = editingCell.field === 'bank_balance' ? newValue : r.bank_balance;
-            const income = editingCell.field === 'monthly_income' ? newValue : r.monthly_income;
-            const expense = editingCell.field === 'credit_expenses' ? newValue : r.credit_expenses;
+            const nisa = editingCell.field === 'nisa_value' ? newValue : r.nisa_value;
             return {
               ...updatedRecord,
-              calculated_balance: bank + income - expense
+              calculated_balance: bank + nisa
             };
           }
           return r;
@@ -339,11 +339,10 @@ export function AssetTableView({ onNavigateToMonth, active }: AssetTableViewProp
             };
             // Recalculate balance
             const bank = totalField === 'bank_balance' ? newTotal : r.bank_balance;
-            const income = totalField === 'monthly_income' ? newTotal : r.monthly_income;
-            const expense = totalField === 'credit_expenses' ? newTotal : r.credit_expenses;
+            const nisa = totalField === 'nisa_value' ? newTotal : r.nisa_value;
             return {
               ...updatedRecord,
-              calculated_balance: bank + income - expense
+              calculated_balance: bank + nisa
             };
           }
           return r;
@@ -473,11 +472,10 @@ export function AssetTableView({ onNavigateToMonth, active }: AssetTableViewProp
               [totalField]: newTotal,
             };
             const bank = totalField === 'bank_balance' ? newTotal : r.bank_balance;
-            const income = totalField === 'monthly_income' ? newTotal : r.monthly_income;
-            const expense = totalField === 'credit_expenses' ? newTotal : r.credit_expenses;
+            const nisa = totalField === 'nisa_value' ? newTotal : r.nisa_value;
             return {
               ...updatedRecord,
-              calculated_balance: bank + income - expense
+              calculated_balance: bank + nisa
             };
           }
           return r;
@@ -701,7 +699,7 @@ export function AssetTableView({ onNavigateToMonth, active }: AssetTableViewProp
                   月
                 </th>
                 <th className="text-right py-3 px-3 font-medium text-blue-700 min-w-[110px]">
-                  口座残高
+                  口座残高（1日）
                 </th>
                 <th className="text-right py-3 px-3 font-medium text-green-700 min-w-[100px]">
                   収入
@@ -776,7 +774,7 @@ export function AssetTableView({ onNavigateToMonth, active }: AssetTableViewProp
 
                       {/* Calculated Balance - Read Only */}
                       <td className="text-right py-3 px-3">
-                        <div className="font-bold">{formatCurrency(record.calculated_balance)}</div>
+                        <div className="font-bold">{formatCurrency(record.bank_balance + record.nisa_value)}</div>
                         {change !== null && (
                           <div
                             className={`text-xs flex items-center justify-end mt-0.5 ${
