@@ -104,7 +104,6 @@ export interface MonthlyAssetRecord {
   credit_expenses: number;
   nisa_value: number;
   calculated_balance: number;
-  is_confirmed: boolean;
   notes: string | null;
   bank_details: BankDetail[] | null;
   income_details: IncomeDetail[] | null;

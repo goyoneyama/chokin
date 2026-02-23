@@ -715,9 +715,6 @@ export function AssetTableView({ onNavigateToMonth, active }: AssetTableViewProp
                 <th className="text-right py-3 px-3 font-bold min-w-[140px]">
                   資産合計
                 </th>
-                <th className="text-center py-3 px-3 font-medium min-w-[70px]">
-                  状態
-                </th>
               </tr>
             </thead>
             <tbody>
@@ -797,24 +794,12 @@ export function AssetTableView({ onNavigateToMonth, active }: AssetTableViewProp
                         )}
                       </td>
 
-                      {/* Status */}
-                      <td className="text-center py-3 px-3">
-                        <span
-                          className={`px-2 py-0.5 rounded text-xs ${
-                            record.is_confirmed
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-orange-100 text-orange-700'
-                          }`}
-                        >
-                          {record.is_confirmed ? '確定' : '予測'}
-                        </span>
-                      </td>
                     </tr>
 
                     {/* Expanded details row */}
                     {isExpanded && (
                       <tr className="border-b bg-gray-50/50">
-                        <td colSpan={7} className="px-6 py-3">
+                        <td colSpan={6} className="px-6 py-3">
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             {/* Bank Details */}
                             <div>

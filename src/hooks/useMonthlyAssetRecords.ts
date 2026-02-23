@@ -54,7 +54,6 @@ export function useMonthlyAssetRecords(targetMonth?: Date) {
   const upsertRecord = async (
     month: string,
     data: MonthlyAssetRecordFormData,
-    isConfirmed: boolean = false
   ): Promise<boolean> => {
     if (!user) return false;
 
@@ -65,7 +64,6 @@ export function useMonthlyAssetRecords(targetMonth?: Date) {
           user_id: user.id,
           year_month: month,
           ...data,
-          is_confirmed: isConfirmed,
         }, { onConflict: 'user_id,year_month' });
 
       if (!error) {
@@ -160,7 +158,7 @@ export function useMonthlyAssetRecords(targetMonth?: Date) {
     }
 
     const nextMonthData = await generateNextMonthRecord(currentRecord);
-    return await upsertRecord(nextMonth, nextMonthData, false);
+    return await upsertRecord(nextMonth, nextMonthData);
   };
 
   // Navigate to previous month
@@ -179,7 +177,7 @@ export function useMonthlyAssetRecords(targetMonth?: Date) {
     if (!existingRecord && currentRecord) {
       // Generate next month record
       const nextMonthData = await generateNextMonthRecord(currentRecord);
-      await upsertRecord(nextMonthYearMonth, nextMonthData, false);
+      await upsertRecord(nextMonthYearMonth, nextMonthData);
     }
 
     setCurrentMonth(nextMonth);
@@ -193,29 +191,6 @@ export function useMonthlyAssetRecords(targetMonth?: Date) {
   // Go to today's month
   const goToToday = () => {
     setCurrentMonth(new Date());
-  };
-
-  // Confirm current record
-  const confirmRecord = async (): Promise<boolean> => {
-    if (!currentRecord) return false;
-
-    const success = await upsertRecord(
-      yearMonth,
-      {
-        bank_balance: currentRecord.bank_balance,
-        monthly_income: currentRecord.monthly_income,
-        credit_expenses: currentRecord.credit_expenses,
-        nisa_value: currentRecord.nisa_value,
-        notes: currentRecord.notes || undefined,
-      },
-      true
-    );
-
-    if (success) {
-      await loadCurrentRecord();
-    }
-
-    return success;
   };
 
   useEffect(() => {
@@ -232,7 +207,6 @@ export function useMonthlyAssetRecords(targetMonth?: Date) {
     goToNextMonth,
     goToMonth,
     goToToday,
-    confirmRecord,
     autoGenerateNextMonth,
     refresh: loadCurrentRecord,
     fetchRecord,

@@ -33,7 +33,6 @@ import {
   ChevronRight,
   Calendar,
   Edit,
-  Check,
   Save,
   ListTree,
   StickyNote,
@@ -60,7 +59,6 @@ export default function AssetsPage() {
     goToNextMonth,
     goToMonth,
     goToToday,
-    confirmRecord,
     fetchRecord,
     refresh,
   } = useMonthlyAssetRecords();
@@ -243,7 +241,6 @@ export default function AssetsPage() {
           user_id: user.id,
           year_month: nextMonthYearMonth,
           ...nextMonthData,
-          is_confirmed: false, // 予測データとして保存
         }, { onConflict: 'user_id,year_month' });
 
       return !error;
@@ -278,7 +275,6 @@ export default function AssetsPage() {
         credit_details: creditDetails.length > 0 ? creditDetails : undefined,
         nisa_details: nisaDetails.length > 0 ? nisaDetails : undefined,
       },
-      false
     );
 
     if (!success) {
@@ -303,15 +299,6 @@ export default function AssetsPage() {
     setIsEditing(false);
     setApplyToNextMonth(false);
     setShowApplyConfirm(false);
-  };
-
-  const handleConfirm = async () => {
-    const success = await confirmRecord();
-    if (success) {
-      toast.success('確定しました');
-    } else {
-      toast.error('確定に失敗しました');
-    }
   };
 
   if (loading) {
@@ -476,17 +463,6 @@ export default function AssetsPage() {
             </Button>
           </div>
 
-          {currentRecord && !currentRecord.is_confirmed && (
-            <div className="mt-3 pt-3 border-t">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-orange-600 font-medium">予測データ</span>
-                <Button size="sm" variant="outline" onClick={handleConfirm}>
-                  <Check size={14} className="mr-1" />
-                  確定する
-                </Button>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -756,8 +732,6 @@ export default function AssetsPage() {
             ・口座残高は給料日前日（{bankBalanceDay}日）の値を入力
             <br />
             ・資産合計はカード支払日（{cardPaymentDay}日）時点で自動計算
-            <br />
-            ・次月は自動で予測値が設定されます
           </p>
         </CardContent>
       </Card>

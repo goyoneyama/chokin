@@ -229,28 +229,6 @@ export default function HistoryPage() {
                     })}
                   </tr>
 
-                  {/* Status Indicator */}
-                  <tr className="border-b hover:bg-gray-50">
-                    <td className="py-2 px-3 text-sm bg-gray-50 sticky left-0">
-                      ステータス
-                    </td>
-                    {recentMonths.map((month) => {
-                      const record = getRecordForMonth(month);
-                      return (
-                        <td key={month} className="text-right py-2 px-3 text-xs">
-                          {record ? (
-                            <span className={`px-2 py-1 rounded ${
-                              record.is_confirmed
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-orange-100 text-orange-700'
-                            }`}>
-                              {record.is_confirmed ? '確定' : '予測'}
-                            </span>
-                          ) : '-'}
-                        </td>
-                      );
-                    })}
-                  </tr>
                 </tbody>
               </table>
             </div>
